@@ -1,0 +1,9 @@
+{
+  "name": "use-stick-to-bottom",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/samdenty/use-stick-to-bottom",
+  "author": "Sam Denty",
+  "license": "MIT",
+  "private": false
+}
