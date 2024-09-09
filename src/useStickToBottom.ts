@@ -24,7 +24,7 @@ interface StickToBottomState {
   listeners: Set<(isAtBottom: boolean) => void>;
 }
 
-export interface SpringBehavior {
+export interface SmoothAnimation {
   /**
    * A value from 0 to 1, on how much to damp the animation.
    * 0 means no damping, 1 means full damping.
@@ -46,9 +46,9 @@ export interface SpringBehavior {
   mass?: number;
 }
 
-export type Behavior = ScrollBehavior | SpringBehavior;
+export type Behavior = ScrollBehavior | SmoothAnimation;
 
-export interface StickToBottomOptions extends SpringBehavior {
+export interface StickToBottomOptions extends SmoothAnimation {
   behavior?: ScrollBehavior;
 }
 
@@ -100,7 +100,7 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
       stiffness = options.stiffness ?? 0.1,
       damping = options.damping ?? 0.85,
       mass = options.mass ?? 2,
-    } = behavior as SpringBehavior;
+    } = behavior as SmoothAnimation;
 
     const animateScroll = () => {
       if (!state.isAtBottom) {
