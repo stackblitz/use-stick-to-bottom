@@ -177,10 +177,24 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     });
   }, []);
 
+  const handleWheel = useCallback(({ deltaY }: WheelEvent) => {
+    /**
+     * The browser may cancel the scrolling from the mouse wheel,
+     * if we update it from the animation in meantime.
+     * So to prevent this, always escape when the wheel is scrolled up.
+     */
+    if (deltaY < 0) {
+      setEscapedFromLock(true);
+      setIsAtBottom(false);
+    }
+  }, []);
+
   const scrollRef = useRefCallback<ScrollRef>((scroll: ScrollRef | null) => {
     scrollRef.current?.removeEventListener('scroll', handleScroll);
+    scrollRef.current?.removeEventListener('wheel', handleWheel);
     scrollRef.current = scroll;
     scroll?.addEventListener('scroll', handleScroll, { passive: true });
+    scroll?.addEventListener('wheel', handleWheel);
   }, []);
 
   const contentRef = useRefCallback<ContentRef>((content: ContentRef | null) => {
