@@ -24,8 +24,24 @@ interface StickToBottomState {
 }
 
 export interface SpringBehavior {
+  /**
+   * A value from 0 to 1, on how much to damp the animation.
+   * 0 means no damping, 1 means full damping.
+   * @default 0.85
+   */
   damping?: number;
+
+  /**
+   * The stiffness of how fast/slow the animation gets up to speed.
+   * @default 0.1
+   */
   stiffness?: number;
+
+  /**
+   * The inertial mass associated with the animation.
+   * Higher numbers make the animation slower.
+   * @default 2
+   */
   mass?: number;
 }
 
@@ -78,7 +94,14 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
 
     setIsAtBottom(true);
 
-    const { stiffness = 0.1, damping = 0.85, mass = 2 } = behavior as SpringBehavior;
+    const {
+      stiffness = 0.1,
+      damping = 0.85,
+      mass = 2,
+    } = {
+      ...(options.behavior as SpringBehavior),
+      ...(behavior as SpringBehavior),
+    };
 
     let velocity = 0;
 
