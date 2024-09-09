@@ -15,6 +15,7 @@ interface StickToBottomState {
   ignoreScrollToTop?: number;
 
   animation?: ReturnType<typeof requestAnimationFrame>;
+  velocity: number;
 
   escapedFromLock: boolean;
   isAtBottom: boolean;
@@ -47,7 +48,7 @@ export interface SpringBehavior {
 
 export type Behavior = ScrollBehavior | SpringBehavior;
 
-export interface StickToBottomOptions {
+export interface StickToBottomOptions extends SpringBehavior {
   behavior?: ScrollBehavior;
 }
 
@@ -62,6 +63,7 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
       escapedFromLock,
       isAtBottom,
       resizeDifference: 0,
+      velocity: 0,
       listeners: new Set(),
     }),
     []
@@ -95,18 +97,14 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     setIsAtBottom(true);
 
     const {
-      stiffness = 0.1,
-      damping = 0.85,
-      mass = 2,
-    } = {
-      ...(options.behavior as SpringBehavior),
-      ...(behavior as SpringBehavior),
-    };
-
-    let velocity = 0;
+      stiffness = options.stiffness ?? 0.1,
+      damping = options.damping ?? 0.85,
+      mass = options.mass ?? 2,
+    } = behavior as SpringBehavior;
 
     const animateScroll = () => {
       if (!state.isAtBottom) {
+        state.velocity = 0;
         state.listeners.forEach((listener) => listener(false));
         return;
       }
@@ -124,12 +122,13 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
         return;
       }
 
-      velocity = Math.max((damping * velocity + stiffness * difference) / mass, 0.5);
+      state.velocity = Math.max((damping * state.velocity + stiffness * difference) / mass, 0.5);
 
-      scrollElement.scrollTop += velocity;
+      scrollElement.scrollTop += state.velocity;
       state.ignoreScrollToTop = scrollElement.scrollTop;
 
       if (scrollTop === scrollElement.scrollTop) {
+        state.velocity = 0;
         state.listeners.forEach((listener) => listener(true));
         return;
       }
