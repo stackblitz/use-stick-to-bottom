@@ -104,8 +104,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     updateIsAtBottom(true);
 
     const behavior = mergeBehaviors(options, state.behavior, scrollBehavior);
-    const { damping, stiffness, mass } = behavior;
-
     state.behavior = behavior;
 
     const complete = () => {
@@ -143,7 +141,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return complete();
       }
 
-      state.velocity = (damping * state.velocity + stiffness * difference) / mass;
+      state.velocity = (behavior.damping * state.velocity + behavior.stiffness * difference) / behavior.mass;
 
       scrollElement.scrollTop += state.velocity;
       state.ignoreScrollToTop = scrollElement.scrollTop;
