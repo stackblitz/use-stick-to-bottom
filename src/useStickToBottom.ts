@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefCallback } from 'react';
 
-interface StickToBottomState extends SpringBehavior {
+interface StickToBottomState {
   lastScrollTop?: number;
   resizeDifference: number;
   ignoreScrollToTop?: number;
