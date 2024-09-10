@@ -1,13 +1,4 @@
-import {
-  DependencyList,
-  MutableRefObject,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type RefCallback,
-} from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefCallback } from 'react';
 
 interface StickToBottomState {
   lastScrollTop?: number;
@@ -21,53 +12,26 @@ interface StickToBottomState {
   isAtBottom: boolean;
 
   resizeObserver?: ResizeObserver;
-  listeners: Set<(isAtBottom: boolean) => void>;
+  listeners: Set<VoidFunction>;
 }
 
-export interface SmoothAnimation {
-  /**
-   * A value from 0 to 1, on how much to damp the animation.
-   * 0 means no damping, 1 means full damping.
-   * @default 0.85
-   */
+export interface SpringBehavior {
   damping?: number;
-
-  /**
-   * The stiffness of how fast/slow the animation gets up to speed.
-   * @default 0.1
-   */
   stiffness?: number;
-
-  /**
-   * The inertial mass associated with the animation.
-   * Higher numbers make the animation slower.
-   * @default 2
-   */
   mass?: number;
 }
 
-export type Behavior = ScrollBehavior | SmoothAnimation;
+export type Behavior = ScrollBehavior | SpringBehavior;
 
-export interface StickToBottomOptions extends SmoothAnimation {
+export interface StickToBottomOptions {
   behavior?: ScrollBehavior;
 }
 
-export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef extends HTMLElement>(
-  options: StickToBottomOptions = {}
-) {
+const MIN_SCROLL_AMOUNT_PX = 0.5;
+
+export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
   const [isAtBottom, updateIsAtBottom] = useState(true);
-
-  const state = useMemo<StickToBottomState>(
-    () => ({
-      escapedFromLock,
-      isAtBottom,
-      resizeDifference: 0,
-      velocity: 0,
-      listeners: new Set(),
-    }),
-    []
-  );
 
   const setIsAtBottom = useCallback((isAtBottom: boolean) => {
     state.isAtBottom = isAtBottom;
@@ -79,7 +43,17 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     updateEscapedFromLock(escapedFromLock);
   }, []);
 
-  const animate = useCallback((animate: () => void) => {
+  const state = useMemo<StickToBottomState>(() => {
+    return {
+      escapedFromLock: false,
+      isAtBottom: true,
+      resizeDifference: 0,
+      velocity: 0,
+      listeners: new Set(),
+    };
+  }, []);
+
+  const animate = useCallback((animate: VoidFunction) => {
     if (state.animation) {
       cancelAnimationFrame(state.animation);
     }
@@ -87,7 +61,7 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     state.animation = requestAnimationFrame(animate);
   }, []);
 
-  const scrollToBottom = useLatestCallback((behavior: Behavior = options.behavior ?? 'smooth') => {
+  const scrollToBottom = useLatestCallback(async (behavior = options.behavior ?? 'smooth') => {
     const scrollElement = scrollRef.current;
 
     if (!scrollElement) {
@@ -96,60 +70,56 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
 
     setIsAtBottom(true);
 
-    const {
-      stiffness = options.stiffness ?? 0.1,
-      damping = options.damping ?? 0.85,
-      mass = options.mass ?? 2,
-    } = behavior as SmoothAnimation;
+    const { stiffness = 0.1, damping = 0.85, mass = 2 } = behavior as SpringBehavior;
+
+    const complete = () => {
+      state.velocity = 0;
+      state.listeners.forEach((resolve) => resolve());
+      state.listeners.clear();
+    };
 
     const animateScroll = () => {
       if (!state.isAtBottom) {
-        state.velocity = 0;
-        state.listeners.forEach((listener) => listener(false));
-        return;
+        return complete();
       }
 
       const targetScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
+
       const { scrollTop } = scrollElement;
-      const difference = targetScrollTop - scrollTop;
+
+      const difference = targetScrollTop > scrollTop ? targetScrollTop - scrollTop : 0;
 
       if (behavior === 'instant') {
         scrollElement.scrollTop = targetScrollTop;
         state.ignoreScrollToTop = scrollElement.scrollTop;
 
-        state.listeners.forEach((listener) => listener(true));
-
-        return;
+        return complete();
       }
 
-      state.velocity = Math.max((damping * state.velocity + stiffness * difference) / mass, 0.5);
+      state.velocity = (damping * state.velocity + stiffness * difference) / mass;
 
       scrollElement.scrollTop += state.velocity;
       state.ignoreScrollToTop = scrollElement.scrollTop;
 
-      if (scrollTop === scrollElement.scrollTop) {
-        state.velocity = 0;
-        state.listeners.forEach((listener) => listener(true));
-        return;
+      if (state.velocity >= MIN_SCROLL_AMOUNT_PX && scrollTop === scrollElement.scrollTop) {
+        return complete();
       }
 
-      animate(animateScroll);
+      return animate(animateScroll);
     };
 
     animate(animateScroll);
 
-    return new Promise<boolean>((resolve) => {
-      state.listeners.add((isAtBottom) => {
-        resolve(isAtBottom);
-        state.listeners.delete(resolve);
-      });
-    });
+    await new Promise<void>((resolve) => state.listeners.add(resolve));
+
+    return state.isAtBottom;
   });
 
   const handleScroll = useCallback(() => {
     const offset = state.animation ? 100 : 50;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current!;
+    const scrollElement = scrollRef.current!;
+    const { scrollTop, scrollHeight, clientHeight } = scrollElement;
     let { lastScrollTop = scrollTop, ignoreScrollToTop } = state;
 
     state.lastScrollTop = scrollTop;
@@ -157,33 +127,50 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
 
     /**
      * Scroll events may come before a ResizeObserver event,
-     * (see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228)
-     * so in order to ignore resize event correctly wrap in a timeout.
+     * so in order to ignore resize events correctly we use a
+     * timeout.
+     *
+     * @see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228
      */
     setTimeout(() => {
       const { resizeDifference } = state;
-      const scrollDifference = scrollTop - lastScrollTop;
+      const negativeResize = resizeDifference < 0;
 
-      /**
-       * When the resize event was negative, ignore it.
-       * Also when the scroll difference is greater than or equal to the resize difference,
-       * ignore the resize event. (resize events are normally a couple pixel smaller than the scroll difference)
-       */
-      if (resizeDifference && (resizeDifference < 0 || scrollDifference >= resizeDifference)) {
+      if (resizeDifference && !negativeResize) {
+        /**
+         * When theres a resize difference that isn't negative ignore the resize event.
+         * For negative resize event's we'll update isAtBottom to true if they're
+         * near the bottom again.
+         */
         ignoreScrollToTop = scrollTop;
       } else if (ignoreScrollToTop && ignoreScrollToTop > scrollTop) {
         /**
-         * When the user scrolls up while the animation is playing
-         * the scrollTop may not come in separate events. So if this happened
-         * to make sure isScrollingUp is correct, set the lastScrollTop to the
-         * ignored event.
+         * When the user scrolls up while the animation plays, the `scrollTop` may
+         * not come in separate events; if this happens, to make sure `isScrollingUp`
+         * is correct, set the lastScrollTop to the ignored event.
          */
         lastScrollTop = ignoreScrollToTop;
       }
 
-      const isScrollingDown = scrollTop > lastScrollTop;
-      const isScrollingUp = scrollTop < lastScrollTop;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight <= offset;
+      const isScrollingDown = negativeResize || scrollTop > lastScrollTop;
+      const isScrollingUp = !negativeResize && scrollTop < lastScrollTop;
+      const scrollDifference = scrollHeight - clientHeight - scrollTop;
+      const isNearBottom = scrollDifference <= offset;
+
+      /**
+       * If at the very end of the container, scroll back up very slighty to
+       * prevent the browser from auto-sticking the container to the bottom,
+       * when a child element height resizes (doesn't happen for additions to DOM)
+       * because the browser will try to adjust the scroll to compensate for this.
+       * A slight offset off the bottom will prevent this, and allow for a smooth
+       * animation instead of instant scrolling.
+       */
+      if (scrollDifference === 0) {
+        scrollElement.scrollTop = scrollTop - MIN_SCROLL_AMOUNT_PX;
+        state.ignoreScrollToTop = scrollElement.scrollTop;
+
+        return;
+      }
 
       if (scrollTop === ignoreScrollToTop) {
         return;
@@ -201,9 +188,9 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
 
   const handleWheel = useCallback(({ deltaY }: WheelEvent) => {
     /**
-     * The browser may cancel the scrolling from the mouse wheel,
+     * The browser may cancel the scrolling from the mouse wheel
      * if we update it from the animation in meantime.
-     * So to prevent this, always escape when the wheel is scrolled up.
+     * To prevent this, always escape when the wheel is scrolled up.
      */
     if (deltaY < 0) {
       setEscapedFromLock(true);
@@ -211,15 +198,15 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     }
   }, []);
 
-  const scrollRef = useRefCallback<ScrollRef>((scroll: ScrollRef | null) => {
+  const scrollRef: RefCallback<HTMLElement> & { current?: HTMLElement } = useCallback((scroll) => {
     scrollRef.current?.removeEventListener('scroll', handleScroll);
     scrollRef.current?.removeEventListener('wheel', handleWheel);
-    scrollRef.current = scroll;
+    scrollRef.current = scroll ?? undefined;
     scroll?.addEventListener('scroll', handleScroll, { passive: true });
     scroll?.addEventListener('wheel', handleWheel);
   }, []);
 
-  const contentRef = useRefCallback<ContentRef>((content: ContentRef | null) => {
+  const contentRef: RefCallback<HTMLElement> = useCallback((content) => {
     state.resizeObserver?.disconnect();
 
     if (!content) {
@@ -243,7 +230,8 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
        * Reset the resize difference after the scroll event
        * has fired. Requires a rAF to wait for the scroll event,
        * and a setTimeout to wait for the other timeout we have in
-       * setTimeout in case the scroll event happens after the resize event.
+       * resizeObserver in case the scroll event happens after the
+       * resize event.
        */
       requestAnimationFrame(() => {
         setTimeout(() => {
@@ -264,7 +252,7 @@ export function useStickToBottom<ScrollRef extends HTMLElement, ContentRef exten
     isAtBottom,
     escapedFromLock,
   };
-}
+};
 
 function useLatestCallback<T extends (...args: any[]) => any>(callback: T): T {
   const callbackRef = useRef(callback);
@@ -274,13 +262,4 @@ function useLatestCallback<T extends (...args: any[]) => any>(callback: T): T {
   });
 
   return useCallback(((...args) => callbackRef.current(...args)) as T, []);
-}
-
-function useRefCallback<T>(callback: (ref: T) => void, deps: DependencyList) {
-  const callbackRef = useCallback((ref: T) => {
-    callbackRef.current = ref;
-    callback(ref);
-  }, deps) as any as RefCallback<T> & MutableRefObject<T | null>;
-
-  return callbackRef;
 }
