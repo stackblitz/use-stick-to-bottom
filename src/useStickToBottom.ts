@@ -267,7 +267,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         updateIsAtBottom();
       }
 
-      if (difference > 0) {
+      if (difference >= 0) {
         /**
          * If it's a positive resize, scroll to the bottom when
          * we're already at the bottom.
