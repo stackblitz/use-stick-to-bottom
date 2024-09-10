@@ -10,6 +10,7 @@ interface StickToBottomState {
 
   escapedFromLock: boolean;
   isAtBottom: boolean;
+  isNearBottom: boolean;
 
   resizeObserver?: ResizeObserver;
   listeners: Set<VoidFunction>;
@@ -28,14 +29,23 @@ export interface StickToBottomOptions {
 }
 
 const MIN_SCROLL_AMOUNT_PX = 0.5;
+const STICK_TO_BOTTOM_OFFSET_PX = 100;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
-  const [isAtBottom, updateIsAtBottom] = useState(true);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
-  const setIsAtBottom = useCallback((isAtBottom: boolean) => {
+  const updateIsAtBottom = useCallback((isAtBottom?: boolean) => {
+    const scrollElement = scrollRef.current!;
+    const scrollDifference = scrollElement.scrollHeight - scrollElement.clientHeight - scrollElement.scrollTop;
+    state.isNearBottom = scrollDifference <= STICK_TO_BOTTOM_OFFSET_PX;
+
+    if (isAtBottom == null) {
+      isAtBottom = !state.escapedFromLock && state.isNearBottom;
+    }
+
     state.isAtBottom = isAtBottom;
-    updateIsAtBottom(isAtBottom);
+    setIsAtBottom(isAtBottom);
   }, []);
 
   const setEscapedFromLock = useCallback((escapedFromLock: boolean) => {
@@ -45,8 +55,9 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
   const state = useMemo<StickToBottomState>(() => {
     return {
-      escapedFromLock: false,
-      isAtBottom: true,
+      escapedFromLock,
+      isAtBottom,
+      isNearBottom: false,
       resizeDifference: 0,
       velocity: 0,
       listeners: new Set(),
@@ -68,7 +79,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       throw new Error('Scroll to bottom called before scrollRef is set');
     }
 
-    setIsAtBottom(true);
+    updateIsAtBottom(true);
 
     const { stiffness = 0.1, damping = 0.85, mass = 2 } = behavior as SpringBehavior;
 
@@ -101,7 +112,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       scrollElement.scrollTop += state.velocity;
       state.ignoreScrollToTop = scrollElement.scrollTop;
 
-      if (state.velocity >= MIN_SCROLL_AMOUNT_PX && scrollTop === scrollElement.scrollTop) {
+      if (scrollTop === scrollElement.scrollTop) {
         return complete();
       }
 
@@ -116,8 +127,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   });
 
   const handleScroll = useCallback(() => {
-    const offset = state.animation ? 100 : 50;
-
     const scrollElement = scrollRef.current!;
     const { scrollTop, scrollHeight, clientHeight } = scrollElement;
     let { lastScrollTop = scrollTop, ignoreScrollToTop } = state;
@@ -134,11 +143,10 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      */
     setTimeout(() => {
       const { resizeDifference } = state;
-      const negativeResize = resizeDifference < 0;
 
-      if (resizeDifference && !negativeResize) {
+      if (resizeDifference) {
         /**
-         * When theres a resize difference that isn't negative ignore the resize event.
+         * When theres a resize difference ignore the resize event.
          * For negative resize event's we'll update isAtBottom to true if they're
          * near the bottom again.
          */
@@ -152,10 +160,9 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         lastScrollTop = ignoreScrollToTop;
       }
 
-      const isScrollingDown = negativeResize || scrollTop > lastScrollTop;
-      const isScrollingUp = !negativeResize && scrollTop < lastScrollTop;
+      const isScrollingDown = scrollTop > lastScrollTop;
+      const isScrollingUp = scrollTop < lastScrollTop;
       const scrollDifference = scrollHeight - clientHeight - scrollTop;
-      const isNearBottom = scrollDifference <= offset;
 
       /**
        * If at the very end of the container, scroll back up very slighty to
@@ -182,7 +189,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         setEscapedFromLock(false);
       }
 
-      setIsAtBottom(!state.escapedFromLock && isNearBottom);
+      updateIsAtBottom();
     });
   }, []);
 
@@ -194,7 +201,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      */
     if (deltaY < 0) {
       setEscapedFromLock(true);
-      setIsAtBottom(false);
+      updateIsAtBottom(false);
     }
   }, []);
 
@@ -220,8 +227,19 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       const difference = height - (previousHeight ?? height);
       state.resizeDifference = difference;
 
-      if (difference >= 0 && state.isAtBottom) {
-        scrollToBottom();
+      if (!state.isAtBottom) {
+        updateIsAtBottom();
+      }
+
+      if (difference > 0) {
+        if (state.isAtBottom) {
+          scrollToBottom();
+        }
+      } else {
+        if (state.isNearBottom) {
+          setEscapedFromLock(false);
+          updateIsAtBottom();
+        }
       }
 
       previousHeight = height;
