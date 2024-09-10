@@ -225,6 +225,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     state.resizeObserver = new ResizeObserver(([entry]) => {
       const { height } = entry.contentRect;
       const difference = height - (previousHeight ?? height);
+
+      previousHeight = height;
       state.resizeDifference = difference;
 
       if (!state.isAtBottom) {
@@ -250,8 +252,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           updateIsAtBottom();
         }
       }
-
-      previousHeight = height;
 
       /**
        * Reset the resize difference after the scroll event
