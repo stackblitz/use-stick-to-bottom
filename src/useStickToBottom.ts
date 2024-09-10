@@ -232,10 +232,19 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       }
 
       if (difference > 0) {
+        /**
+         * If it's a positive resize, scroll to the bottom when
+         * we're already at the bottom.
+         */
         if (state.isAtBottom) {
           scrollToBottom();
         }
       } else {
+        /**
+         * Else if it's a negative resize, check if we're near the bottom
+         * if we are want to un-escape from the lock, because the resize
+         * could have caused the container to be at the bottom.
+         */
         if (state.isNearBottom) {
           setEscapedFromLock(false);
           updateIsAtBottom();
