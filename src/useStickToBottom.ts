@@ -94,7 +94,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     state.animation = requestAnimationFrame(animate);
   }, []);
 
-  const scrollToBottom = useLatestCallback(async (behavior: Behavior = options.behavior ?? 'smooth') => {
+  const scrollToBottom = useLatestCallback(async (scrollBehavior: Behavior = options.behavior ?? 'smooth') => {
     const scrollElement = scrollRef.current;
 
     if (!scrollElement) {
@@ -103,15 +103,26 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     updateIsAtBottom(true);
 
-    state.behavior = mergeBehaviors(options, state.behavior, behavior);
+    const behavior = mergeBehaviors(options, state.behavior, scrollBehavior);
+    const { damping, stiffness, mass } = behavior;
 
-    const { damping, stiffness, mass } = state.behavior;
+    state.behavior = behavior;
 
     const complete = () => {
       state.velocity = 0;
-      state.behavior = undefined;
       state.listeners.forEach((resolve) => resolve());
       state.listeners.clear();
+
+      /**
+       * Reset the behavior after 500ms to allow for people
+       * to call scrollToBottom in between a render, where the
+       * animation may complete multiple times.
+       */
+      setTimeout(() => {
+        if (behavior === state.behavior) {
+          state.behavior = undefined;
+        }
+      }, 500);
     };
 
     const animateScroll = () => {
@@ -125,14 +136,13 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
       const difference = targetScrollTop > scrollTop ? targetScrollTop - scrollTop : 0;
 
-      if (behavior === 'instant') {
+      if (scrollBehavior === 'instant') {
         scrollElement.scrollTop = targetScrollTop;
         state.ignoreScrollToTop = scrollElement.scrollTop;
 
         return complete();
       }
 
-      console.log({ damping, stiffness, mass });
       state.velocity = (damping * state.velocity + stiffness * difference) / mass;
 
       scrollElement.scrollTop += state.velocity;
