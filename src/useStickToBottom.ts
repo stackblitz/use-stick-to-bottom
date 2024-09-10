@@ -1,11 +1,12 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefCallback } from 'react';
 
-interface StickToBottomState {
+interface StickToBottomState extends SpringBehavior {
   lastScrollTop?: number;
   resizeDifference: number;
   ignoreScrollToTop?: number;
 
   animation?: ReturnType<typeof requestAnimationFrame>;
+  behavior?: Required<SpringBehavior>;
   velocity: number;
 
   escapedFromLock: boolean;
@@ -16,15 +17,36 @@ interface StickToBottomState {
   listeners: Set<VoidFunction>;
 }
 
-export interface SpringBehavior {
-  damping?: number;
-  stiffness?: number;
-  mass?: number;
-}
+const DEFAULT_SPRING_BEHAVIOR = {
+  /**
+   * A value from 0 to 1, on how much to damp the animation.
+   * 0 means no damping, 1 means full damping.
+   *
+   * @default 0.85
+   */
+  damping: 0.85,
+
+  /**
+   * The stiffness of how fast/slow the animation gets up to speed.
+   *
+   * @default 0.1
+   */
+  stiffness: 0.1,
+
+  /**
+   * The inertial mass associated with the animation.
+   * Higher numbers make the animation slower.
+   *
+   * @default 2
+   */
+  mass: 2,
+};
+
+export interface SpringBehavior extends Partial<typeof DEFAULT_SPRING_BEHAVIOR> {}
 
 export type Behavior = ScrollBehavior | SpringBehavior;
 
-export interface StickToBottomOptions {
+export interface StickToBottomOptions extends SpringBehavior {
   behavior?: ScrollBehavior;
 }
 
@@ -72,7 +94,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     state.animation = requestAnimationFrame(animate);
   }, []);
 
-  const scrollToBottom = useLatestCallback(async (behavior = options.behavior ?? 'smooth') => {
+  const scrollToBottom = useLatestCallback(async (behavior: Behavior = options.behavior ?? 'smooth') => {
     const scrollElement = scrollRef.current;
 
     if (!scrollElement) {
@@ -81,10 +103,13 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     updateIsAtBottom(true);
 
-    const { stiffness = 0.1, damping = 0.85, mass = 2 } = behavior as SpringBehavior;
+    state.behavior = mergeBehaviors(options, state.behavior, behavior);
+
+    const { damping, stiffness, mass } = state.behavior;
 
     const complete = () => {
       state.velocity = 0;
+      state.behavior = undefined;
       state.listeners.forEach((resolve) => resolve());
       state.listeners.clear();
     };
@@ -107,6 +132,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return complete();
       }
 
+      console.log({ damping, stiffness, mass });
       state.velocity = (damping * state.velocity + stiffness * difference) / mass;
 
       scrollElement.scrollTop += state.velocity;
@@ -289,4 +315,20 @@ function useLatestCallback<T extends (...args: any[]) => any>(callback: T): T {
   });
 
   return useCallback(((...args) => callbackRef.current(...args)) as T, []);
+}
+
+function mergeBehaviors(...behaviors: (Behavior | undefined)[]) {
+  const result = { ...DEFAULT_SPRING_BEHAVIOR };
+
+  for (const behavior of behaviors) {
+    if (typeof behavior !== 'object') {
+      continue;
+    }
+
+    result.damping = behavior.damping ?? result.damping;
+    result.stiffness = behavior.stiffness ?? result.stiffness;
+    result.mass = behavior.mass ?? result.mass;
+  }
+
+  return result;
 }
