@@ -30,9 +30,17 @@ A lightweight **zero-dependency** React hook + Component that automatically stic
 import { StickToBottom } from 'use-stick-to-bottom';
 
 <StickToBottom className="h-[50vh]" behavior="smooth">
-  {messages.map((message) => (
-    <Message key={message.id} message={message} />
-  ))}
+  {(contentRef) => (
+    <>
+      <div className="flex flex-col gap-4" ref={contentRef}>
+        {messages.map((message) => (
+          <Message key={message.id} message={message} />
+        ))}
+      </div>
+
+      <ChatBox />
+    </>
+  )}
 </StickToBottom>;
 ```
 

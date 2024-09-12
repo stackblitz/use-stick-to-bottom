@@ -24,13 +24,15 @@ function Messages({ behavior, speed }: { behavior: ScrollBehavior; speed: number
       <h2 className="flex justify-center">{behavior}:</h2>
 
       <StickToBottom className="relative w-full" behavior={behavior}>
-        <div className="flex flex-col gap-4 p-6">
-          {messages.map((message, i) => (
-            <Message key={i}>{message}</Message>
-          ))}
+        {(ref) => (
+          <div className="flex flex-col gap-4 p-6" ref={ref}>
+            {messages.map((message, i) => (
+              <Message key={i}>{message}</Message>
+            ))}
 
-          <ScrollToBottom />
-        </div>
+            <ScrollToBottom />
+          </div>
+        )}
       </StickToBottom>
     </div>
   );

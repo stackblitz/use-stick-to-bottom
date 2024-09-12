@@ -1,4 +1,13 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefCallback } from 'react';
+import {
+  DependencyList,
+  MutableRefObject,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefCallback,
+} from 'react';
 
 interface StickToBottomState {
   scrollTop: number;
@@ -218,7 +227,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     /**
      * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
      */
-    if (state.scrollTop > state.targetScrollTop) {
+    if (scrollTop > state.targetScrollTop) {
       state.scrollTop = state.targetScrollTop;
 
       return;
@@ -268,15 +277,14 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     }
   }, []);
 
-  const scrollRef: RefCallback<HTMLElement> & { current?: HTMLElement } = useCallback((scroll) => {
+  const scrollRef = useRefCallback((scroll) => {
     scrollRef.current?.removeEventListener('scroll', handleScroll);
     scrollRef.current?.removeEventListener('wheel', handleWheel);
-    scrollRef.current = scroll ?? undefined;
     scroll?.addEventListener('scroll', handleScroll, { passive: true });
     scroll?.addEventListener('wheel', handleWheel);
   }, []);
 
-  const contentRef: RefCallback<HTMLElement> = useCallback((content) => {
+  const contentRef = useRefCallback((content) => {
     state.resizeObserver?.disconnect();
 
     if (!content) {
@@ -352,6 +360,15 @@ function useLatestCallback<T extends (...args: any[]) => any>(callback: T): T {
   });
 
   return useCallback(((...args) => callbackRef.current(...args)) as T, []);
+}
+
+function useRefCallback<T extends (ref: HTMLDivElement | null) => any>(callback: T, deps: DependencyList) {
+  const result = useCallback((ref: HTMLDivElement | null) => {
+    result.current = ref;
+    return callback(ref);
+  }, deps) as any as MutableRefObject<HTMLDivElement | null> & RefCallback<HTMLDivElement>;
+
+  return result;
 }
 
 function mergeBehaviors(...behaviors: (Behavior | undefined)[]) {

@@ -1,4 +1,4 @@
-import React, { createContext, isValidElement, ReactNode, useContext, useLayoutEffect, useMemo } from 'react';
+import React, { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
 import { Behavior, StickToBottomOptions, useStickToBottom } from './useStickToBottom';
 
 const StickToBottomContext = createContext<{
@@ -7,9 +7,11 @@ const StickToBottomContext = createContext<{
   escapedFromLock: boolean;
 } | null>(null);
 
-export interface StickToBottomProps extends React.HTMLAttributes<HTMLDivElement>, StickToBottomOptions {
+export interface StickToBottomProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
+    StickToBottomOptions {
   instance?: ReturnType<typeof useStickToBottom>;
-  children: ReactNode;
+  children: (contentRef: RefCallback<HTMLDivElement>) => ReactNode;
 }
 
 export function StickToBottom({
@@ -44,18 +46,10 @@ export function StickToBottom({
     }
   }, []);
 
-  if (isValidElement(children)) {
-    children = React.cloneElement(children, {
-      ref: contentRef,
-    } as React.HTMLAttributes<HTMLDivElement>);
-  } else {
-    children = <div ref={contentRef}>{children}</div>;
-  }
-
   return (
     <StickToBottomContext.Provider value={context}>
       <div {...props} ref={scrollRef}>
-        {children}
+        {children(contentRef)}
       </div>
     </StickToBottomContext.Provider>
   );
