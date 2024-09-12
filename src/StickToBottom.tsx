@@ -19,7 +19,7 @@ export interface StickToBottomProps
 
 export function StickToBottom({
   instance,
-  children: Children,
+  children,
   behavior,
   damping,
   stiffness,
@@ -52,7 +52,7 @@ export function StickToBottom({
   return (
     <StickToBottomContext.Provider value={context}>
       <div {...props} ref={scrollRef}>
-        <Children {...context} />
+        {children(context)}
       </div>
     </StickToBottomContext.Provider>
   );
