@@ -1,22 +1,25 @@
 import React, { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
 import { Behavior, StickToBottomOptions, useStickToBottom } from './useStickToBottom';
 
-const StickToBottomContext = createContext<{
+export interface StickToBottomContext {
+  contentRef: RefCallback<HTMLDivElement>;
   scrollToBottom(behavior?: Behavior): Promise<boolean>;
   isAtBottom: boolean;
   escapedFromLock: boolean;
-} | null>(null);
+}
+
+const StickToBottomContext = createContext<StickToBottomContext | null>(null);
 
 export interface StickToBottomProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
     StickToBottomOptions {
   instance?: ReturnType<typeof useStickToBottom>;
-  children: (contentRef: RefCallback<HTMLDivElement>) => ReactNode;
+  children: (context: StickToBottomContext) => ReactNode;
 }
 
 export function StickToBottom({
   instance,
-  children,
+  children: Children,
   behavior,
   damping,
   stiffness,
@@ -31,9 +34,9 @@ export function StickToBottom({
   });
   const { scrollRef, contentRef, scrollToBottom, isAtBottom, escapedFromLock } = instance ?? defaultInstance;
 
-  const context = useMemo(
-    () => ({ scrollToBottom, isAtBottom, escapedFromLock }),
-    [scrollToBottom, isAtBottom, escapedFromLock]
+  const context = useMemo<StickToBottomContext>(
+    () => ({ scrollToBottom, isAtBottom, escapedFromLock, contentRef }),
+    [scrollToBottom, isAtBottom, contentRef, escapedFromLock]
   );
 
   useLayoutEffect(() => {
@@ -49,7 +52,7 @@ export function StickToBottom({
   return (
     <StickToBottomContext.Provider value={context}>
       <div {...props} ref={scrollRef}>
-        {children(contentRef)}
+        <Children {...context} />
       </div>
     </StickToBottomContext.Provider>
   );
@@ -61,7 +64,7 @@ export function StickToBottom({
 export function useStickToBottomContext() {
   const context = useContext(StickToBottomContext);
   if (!context) {
-    throw new Error('use-stick-to-bottom component hooks must be used within a StickToBottom component');
+    throw new Error('use-stick-to-bottom component context must be used within a StickToBottom component');
   }
 
   return context;

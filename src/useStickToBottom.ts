@@ -201,12 +201,9 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       return animate(animateScroll);
     };
 
-    const promise = new Promise<void>((resolve) => state.listeners.add(resolve));
-
-    animateScroll();
     animate(animateScroll);
 
-    await promise;
+    await new Promise<void>((resolve) => state.listeners.add(resolve));
 
     return state.isAtBottom;
   });

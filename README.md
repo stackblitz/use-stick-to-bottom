@@ -24,29 +24,48 @@ A lightweight **zero-dependency** React hook + Component that automatically stic
 
 # Usage
 
-## Component
+## `<StickToBottom>` Component
 
-```tsx
-import { StickToBottom } from 'use-stick-to-bottom';
+```jsx
+import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
 
-<StickToBottom className="h-[50vh]" behavior="smooth">
-  {(contentRef) => (
-    <>
-      <div className="flex flex-col gap-4" ref={contentRef}>
-        {messages.map((message) => (
-          <Message key={message.id} message={message} />
-        ))}
-      </div>
+function Chat() {
+  return (
+    <StickToBottom className="h-[50vh]" behavior="smooth">
+      {({ contentRef, scrollToBottom }) => (
+        <>
+          <div className="flex flex-col gap-4" ref={contentRef}>
+            {messages.map((message) => (
+              <Message key={message.id} message={message} />
+            ))}
+          </div>
 
-      <ChatBox />
-    </>
-  )}
-</StickToBottom>;
+          <ScrollToBottom />
+
+          <ChatBox onSubmit={() => scrollToBottom()} />
+        </>
+      )}
+    </StickToBottom>
+  );
+}
+
+function ScrollToBottom() {
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+
+  return (
+    !isAtBottom && (
+      <button
+        className="sticky i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
+        onClick={() => scrollToBottom()}
+      />
+    )
+  );
+}
 ```
 
-## Hook
+## `useStickToBottom` Hook
 
-```tsx
+```jsx
 import { useStickToBottom } from 'use-stick-to-bottom';
 
 function Component() {
