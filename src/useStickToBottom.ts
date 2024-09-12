@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type RefCallback,
+  useLayoutEffect,
 } from 'react';
 
 interface StickToBottomState {
@@ -73,11 +74,13 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
-  optionsRef.current = options;
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const updateIsAtBottom = useCallback((isAtBottom?: boolean) => {
     if (isAtBottom == null) {
-      isAtBottom = state.escapedFromLock ? state.isNearBottom : state.isNearBottom || state.isAtBottom;
+      isAtBottom = state.escapedFromLock ? false : state.isNearBottom || state.isAtBottom;
     }
 
     state.isAtBottom = isAtBottom;
@@ -165,7 +168,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const scrollToBottom = useCallback(async (scrollBehavior?: Behavior, waitForPendingScroll = false) => {
     updateIsAtBottom(true);
 
-    if (!waitForPendingScroll && state.animation) {
+    if (!waitForPendingScroll) {
       scrollComplete(true);
     }
 
@@ -192,7 +195,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          * requested behavior.
          */
         if (state.scrollTop < state.targetScrollTop) {
-          scrollToBottom(mergeBehaviors(optionsRef.current, optionsRef.current.resizeBehavior));
+          scrollToBottom(mergeBehaviors(optionsRef.current, optionsRef.current.resizeBehavior), true);
         }
 
         return scrollComplete();
@@ -315,10 +318,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       const difference = height - (previousHeight ?? height);
 
       state.resizeDifference = difference;
-
-      if (!state.isAtBottom) {
-        updateIsAtBottom();
-      }
 
       if (difference >= 0) {
         /**
