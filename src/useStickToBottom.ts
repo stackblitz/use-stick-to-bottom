@@ -104,7 +104,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         }
 
         if (scrollRef.current) {
-          console.log('set', scrollTop);
           scrollRef.current.scrollTop = scrollTop;
           state.ignoreScrollToTop = scrollRef.current.scrollTop;
         }
@@ -177,7 +176,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const animateScroll = () => {
       if (!state.isAtBottom || state.scrollTop >= state.targetScrollTop) {
-        console.log('complete', state.scrollTop, state.targetScrollTop);
         return complete();
       }
 
@@ -195,8 +193,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       state.accumulated += state.velocity * tickDelta;
       state.scrollTop += state.accumulated;
       state.lastTick = tick;
-
-      console.log(state.accumulated);
 
       if (state.accumulated >= MIN_SCROLL_AMOUNT_PX) {
         state.accumulated = 0;
@@ -239,8 +235,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      * @see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228
      */
     setTimeout(() => {
-      console.log({ ...state });
-
       /**
        * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
        */
@@ -315,7 +309,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          * we're already at the bottom.
          */
         if (state.isAtBottom) {
-          console.log('scroll to bottom');
           scrollToBottom();
         }
       } else {
