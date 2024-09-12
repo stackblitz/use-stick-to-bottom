@@ -65,7 +65,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
   const updateIsAtBottom = useCallback((isAtBottom?: boolean) => {
     if (isAtBottom == null) {
-      isAtBottom = !state.escapedFromLock && state.isNearBottom;
+      isAtBottom = state.escapedFromLock ? state.isNearBottom : state.isNearBottom || state.isAtBottom;
     }
 
     state.isAtBottom = isAtBottom;
