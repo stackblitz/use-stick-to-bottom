@@ -216,6 +216,19 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     }
 
     /**
+     * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
+     */
+    if (state.scrollTop > state.targetScrollTop) {
+      state.scrollTop = state.targetScrollTop;
+
+      return;
+    }
+
+    if (scrollTop === ignoreScrollToTop) {
+      return;
+    }
+
+    /**
      * Scroll events may come before a ResizeObserver event,
      * so in order to ignore resize events correctly we use a
      * timeout.
@@ -223,23 +236,10 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      * @see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228
      */
     setTimeout(() => {
-      const { resizeDifference } = state;
-
-      /**
-       * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
-       */
-      if (state.scrollTop > state.targetScrollTop) {
-        state.scrollTop = state.targetScrollTop;
-
-        return;
-      }
-
       /**
        * When theres a resize difference ignore the resize event.
-       * For negative resize event's we'll update isAtBottom to true if they're
-       * near the bottom again.
        */
-      if (resizeDifference || scrollTop === ignoreScrollToTop) {
+      if (state.resizeDifference) {
         return;
       }
 

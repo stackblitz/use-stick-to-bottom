@@ -1,6 +1,9 @@
 # `useStickToBottom`
 
-A lightweight zero-dependency React hook + component that automatically sticks to the bottom of container and smoothly animates the content to keep it's visual position on screen whilst new content is being added.
+> [!NOTE]
+> Designed with AI chat bots in mind.
+
+A lightweight **zero-dependency** React hook + Component that automatically sticks to the bottom of container and smoothly animates the content to keep it's visual position on screen whilst new content is being added.
 
 ## Features
 
