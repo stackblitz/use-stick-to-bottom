@@ -31,7 +31,7 @@ import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
 
 function Chat() {
   return (
-    <StickToBottom className="h-[50vh]" behavior="smooth">
+    <StickToBottom className="h-[50vh]" resizeBehavior="smooth" initialBehavior="smooth">
       {({ contentRef, scrollToBottom }) => (
         <>
           <div className="flex flex-col gap-4" ref={contentRef}>

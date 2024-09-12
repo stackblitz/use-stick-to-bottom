@@ -3,7 +3,7 @@ import { Behavior, StickToBottomOptions, useStickToBottom } from './useStickToBo
 
 export interface StickToBottomContext {
   contentRef: RefCallback<HTMLDivElement>;
-  scrollToBottom(behavior?: Behavior): Promise<boolean>;
+  scrollToBottom(behavior?: Behavior, waitForPendingScroll?: boolean): Promise<boolean>;
   isAtBottom: boolean;
   escapedFromLock: boolean;
 }
@@ -20,22 +20,29 @@ export interface StickToBottomProps
 export function StickToBottom({
   instance,
   children,
-  behavior,
+  resizeBehavior,
+  initialBehavior,
+  mass,
   damping,
   stiffness,
-  mass,
   ...props
 }: StickToBottomProps) {
   const defaultInstance = useStickToBottom({
-    behavior,
+    mass,
     damping,
     stiffness,
-    mass,
+    resizeBehavior,
+    initialBehavior,
   });
   const { scrollRef, contentRef, scrollToBottom, isAtBottom, escapedFromLock } = instance ?? defaultInstance;
 
   const context = useMemo<StickToBottomContext>(
-    () => ({ scrollToBottom, isAtBottom, escapedFromLock, contentRef }),
+    () => ({
+      scrollToBottom,
+      isAtBottom,
+      escapedFromLock,
+      contentRef,
+    }),
     [scrollToBottom, isAtBottom, contentRef, escapedFromLock]
   );
 

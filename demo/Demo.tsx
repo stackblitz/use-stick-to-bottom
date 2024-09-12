@@ -23,10 +23,17 @@ function Messages({ behavior, speed }: { behavior: ScrollBehavior; speed: number
     <div className="prose flex flex-col gap-2 h-[50vh] w-full">
       <h2 className="flex justify-center">{behavior}:</h2>
 
-      <StickToBottom className="relative w-full" behavior={behavior}>
+      <StickToBottom className="relative w-full" resizeBehavior={behavior} initialBehavior={behavior}>
         {({ contentRef }) => (
           <>
             <div className="flex flex-col gap-4 p-6" ref={contentRef}>
+              {[...Array(10)].map((_, i) => (
+                <Message key={i}>
+                  <h1>This is a test</h1>
+                  more testing text...
+                </Message>
+              ))}
+
               {messages.map((message, i) => (
                 <Message key={i}>{message}</Message>
               ))}
@@ -49,7 +56,7 @@ export function Demo() {
 
       <div className="flex gap-6 w-[100vw]">
         <Messages speed={speed} behavior="smooth" />
-        <Messages speed={speed} behavior="instant" />
+        {/* <Messages speed={speed} behavior="instant" /> */}
       </div>
     </>
   );
