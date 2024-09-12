@@ -3,24 +3,16 @@ import { StickToBottom, useStickToBottomContext } from '../src/StickToBottom';
 import { useFakeMessages } from './useFakeMessages';
 import Slider from '@mui/material/Slider';
 
-function Message({ children }: { children: React.ReactNode }) {
-  // make this look like a message
-
-  return <div className="bg-gray-100 rounded-lg p-4 shadow-md">{children}</div>;
-}
-
 function ScrollToBottom() {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
-  if (isAtBottom) {
-    return null;
-  }
-
   return (
-    <button
-      className="sticky i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
-      onClick={() => scrollToBottom()}
-    />
+    !isAtBottom && (
+      <button
+        className="sticky i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
+        onClick={() => scrollToBottom()}
+      />
+    )
   );
 }
 
@@ -36,6 +28,7 @@ function Messages({ behavior, speed }: { behavior: ScrollBehavior; speed: number
           {messages.map((message, i) => (
             <Message key={i}>{message}</Message>
           ))}
+
           <ScrollToBottom />
         </div>
       </StickToBottom>
@@ -56,4 +49,8 @@ export function Demo() {
       </div>
     </>
   );
+}
+
+function Message({ children }: { children: React.ReactNode }) {
+  return <div className="bg-gray-100 rounded-lg p-4 shadow-md">{children}</div>;
 }

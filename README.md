@@ -2,6 +2,10 @@
 
 > Designed with AI chat bots in mind.
 
+[![npm version](https://img.shields.io/npm/v/use-stick-to-bottom.svg?style=flat-square)](https://www.npmjs.com/package/use-stick-to-bottom)
+[![npm downloads](https://img.shields.io/npm/dm/use-stick-to-bottom.svg?style=flat-square)](https://www.npmjs.com/package/use-stick-to-bottom)
+[![Demo](https://img.shields.io/badge/StackBlitz-Demo-blue.svg?style=flat-square)](https://stackblitz.com/~/github.com/samdenty/use-stick-to-bottom?file=demo/Demo.tsx)
+
 A lightweight **zero-dependency** React hook + Component that automatically sticks to the bottom of container and smoothly animates the content to keep it's visual position on screen whilst new content is being added.
 
 ## Features
