@@ -269,7 +269,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      */
     if (deltaY < 0) {
       setEscapedFromLock(true);
-      updateIsAtBottom();
+      updateIsAtBottom(false);
     }
   }, []);
 
