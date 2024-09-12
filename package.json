@@ -2,7 +2,7 @@
   "name": "use-stick-to-bottom",
   "description": "A lightweight React Hook intended mainly for AI chat applications, for smoothly sticking to bottom of messages",
   "private": false,
-  "version": "0.0.0",
+  "version": "1.0.1",
   "type": "module",
   "files": [
     "dist"
@@ -12,8 +12,12 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b",
+    "build": "rm -rf dist > /dev/null 2>&1; tsc -b",
     "prepublishOnly": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samdenty/use-stick-to-bottom.git"
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
