@@ -46,7 +46,7 @@ function Component() {
 
   return (
     <div style={{ overflow: 'auto' }} ref={scrollRef}>
-      <div ref={contenRef}>
+      <div ref={contentRef}>
         {messages.map((message) => (
           <Message key={message.id} message={message} />
         ))}
