@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
   type RefCallback,
-  useLayoutEffect,
+  useEffect,
 } from 'react';
 
 interface StickToBottomState {
@@ -74,7 +74,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
-  useLayoutEffect(() => {
+  useEffect(() => {
     optionsRef.current = options;
   }, [options]);
 
@@ -281,13 +281,13 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     }, 1);
   }, []);
 
-  const handleWheel = useCallback(({ deltaY }: WheelEvent) => {
+  const handleWheel = useCallback(({ target, deltaY }: WheelEvent) => {
     /**
      * The browser may cancel the scrolling from the mouse wheel
      * if we update it from the animation in meantime.
      * To prevent this, always escape when the wheel is scrolled up.
      */
-    if (deltaY < 0) {
+    if (target === scrollRef.current && deltaY < 0) {
       setEscapedFromLock(true);
       updateIsAtBottom(false);
     }
