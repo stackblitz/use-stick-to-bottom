@@ -12,8 +12,21 @@ export interface StickToBottomProps extends React.HTMLAttributes<HTMLDivElement>
   children: ReactNode;
 }
 
-export function StickToBottom({ instance, children, behavior, ...props }: StickToBottomProps) {
-  const defaultInstance = useStickToBottom({ behavior });
+export function StickToBottom({
+  instance,
+  children,
+  behavior,
+  damping,
+  stiffness,
+  mass,
+  ...props
+}: StickToBottomProps) {
+  const defaultInstance = useStickToBottom({
+    behavior,
+    damping,
+    stiffness,
+    mass,
+  });
   const { scrollRef, contentRef, scrollToBottom, isAtBottom, escapedFromLock } = instance ?? defaultInstance;
 
   const context = useMemo(
@@ -48,7 +61,10 @@ export function StickToBottom({ instance, children, behavior, ...props }: StickT
   );
 }
 
-function useStickToBottomContext() {
+/**
+ * Use this hook inside a <StickToBottom> component to gain access to whether the component is at the bottom of the scrollable area.
+ */
+export function useStickToBottomContext() {
   const context = useContext(StickToBottomContext);
   if (!context) {
     throw new Error('use-stick-to-bottom component hooks must be used within a StickToBottom component');
@@ -56,18 +72,3 @@ function useStickToBottomContext() {
 
   return context;
 }
-
-/**
- * Use this hook inside a <StickToBottom> component to programatically scroll to the bottom of the component.
- */
-export const useScrollToBottom = () => useStickToBottomContext().scrollToBottom;
-
-/**
- * Use this hook inside a <StickToBottom> component to gain access to whether the component is at the bottom of the scrollable area.
- */
-export const useIsAtBottom = () => useStickToBottomContext().isAtBottom;
-
-/**
- * Use this hook inside a <StickToBottom> component to know whether the user has escaped from the stickness lock.
- */
-export const useEscapedFromLock = () => useStickToBottomContext().escapedFromLock;
