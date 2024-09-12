@@ -66,7 +66,7 @@ export interface StickToBottomOptions extends SpringBehavior {
 }
 
 const MIN_SCROLL_AMOUNT_PX = 0.5;
-const STICK_TO_BOTTOM_OFFSET_PX = 100;
+const STICK_TO_BOTTOM_OFFSET_PX = 150;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
@@ -78,11 +78,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     optionsRef.current = options;
   }, [options]);
 
-  const updateIsAtBottom = useCallback((isAtBottom?: boolean) => {
-    if (isAtBottom == null) {
-      isAtBottom = !state.escapedFromLock && state.isNearBottom;
-    }
-
+  const updateIsAtBottom = useCallback((isAtBottom: boolean) => {
     state.isAtBottom = isAtBottom;
     setIsAtBottom(isAtBottom);
   }, []);
@@ -281,7 +277,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         setEscapedFromLock(false);
       }
 
-      updateIsAtBottom();
+      updateIsAtBottom(!state.escapedFromLock && state.isNearBottom);
     }, 1);
   }, []);
 
@@ -340,7 +336,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          */
         if (state.isNearBottom) {
           setEscapedFromLock(false);
-          updateIsAtBottom();
+          updateIsAtBottom(true);
         }
       }
 
