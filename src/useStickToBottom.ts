@@ -209,7 +209,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   });
 
   const handleScroll = useCallback(() => {
-    const { scrollTop, ignoreScrollToTop } = state;
+    const { scrollTop, ignoreScrollToTop, targetScrollTop } = state;
     let { lastScrollTop = scrollTop } = state;
 
     state.lastScrollTop = scrollTop;
@@ -222,19 +222,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
        * is correct, set the lastScrollTop to the ignored event.
        */
       lastScrollTop = ignoreScrollToTop;
-    }
-
-    /**
-     * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
-     */
-    if (scrollTop > state.targetScrollTop) {
-      state.scrollTop = state.targetScrollTop;
-
-      return;
-    }
-
-    if (scrollTop === ignoreScrollToTop) {
-      return;
     }
 
     /**
@@ -252,6 +239,20 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return;
       }
 
+      /**
+       * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
+       * Make sure to never do this on a resize event.
+       */
+      if (scrollTop > targetScrollTop) {
+        state.scrollTop = targetScrollTop;
+
+        return;
+      }
+
+      if (scrollTop === ignoreScrollToTop) {
+        return;
+      }
+
       const isScrollingDown = scrollTop > lastScrollTop;
       const isScrollingUp = scrollTop < lastScrollTop;
 
@@ -262,7 +263,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       }
 
       updateIsAtBottom();
-    });
+    }, 1);
   }, []);
 
   const handleWheel = useCallback(({ deltaY }: WheelEvent) => {
@@ -336,7 +337,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           if (state.resizeDifference === difference) {
             state.resizeDifference = 0;
           }
-        });
+        }, 1);
       });
     });
 
