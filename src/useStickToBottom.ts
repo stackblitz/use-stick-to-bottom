@@ -9,7 +9,7 @@ interface StickToBottomState {
   resizeDifference: number;
 
   animation?: ReturnType<typeof requestAnimationFrame>;
-  lastAnimationTime?: number;
+  lastTick?: number;
   behavior?: Required<SpringBehavior>;
   velocity: number;
   accumulated: number;
@@ -156,13 +156,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         }
       }, 500);
 
-      console.log('reset');
-
-      const { lastAnimationTime } = state;
+      const { lastTick } = state;
 
       requestAnimationFrame(() => {
-        if (lastAnimationTime === state.lastAnimationTime) {
-          state.lastAnimationTime = undefined;
+        if (lastTick === state.lastTick) {
+          state.lastTick = undefined;
         }
       });
     };
@@ -178,14 +176,14 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return complete();
       }
 
-      const currentTime = performance.now();
-      const timingDelta = (currentTime - (state.lastAnimationTime ?? currentTime)) / SIXTY_FPS_INTERVAL_MS;
+      const tick = performance.now();
+      const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
 
       state.velocity =
         (behavior.damping * state.velocity + behavior.stiffness * state.scrollDifference) / behavior.mass;
-      state.accumulated += state.velocity * timingDelta;
+      state.accumulated += state.velocity * tickDelta;
       state.scrollTop += state.accumulated;
-      state.lastAnimationTime = currentTime;
+      state.lastTick = tick;
 
       if (state.accumulated >= MIN_SCROLL_AMOUNT_PX) {
         state.accumulated = 0;
