@@ -1,9 +1,9 @@
 import React, { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
-import { Behavior, StickToBottomOptions, useStickToBottom } from './useStickToBottom';
+import { ScrollToBottom, StickToBottomOptions, useStickToBottom } from './useStickToBottom';
 
 export interface StickToBottomContext {
   contentRef: RefCallback<HTMLDivElement>;
-  scrollToBottom(behavior?: Behavior, waitForPendingScroll?: boolean): Promise<boolean>;
+  scrollToBottom: ScrollToBottom;
   isAtBottom: boolean;
   escapedFromLock: boolean;
 }
