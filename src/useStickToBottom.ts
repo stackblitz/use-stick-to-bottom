@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type RefCallback,
-  useEffect,
 } from 'react';
 
 interface StickToBottomState {
@@ -28,7 +27,6 @@ interface StickToBottomState {
   isNearBottom: boolean;
 
   resizeObserver?: ResizeObserver;
-  listeners: Set<VoidFunction>;
 }
 
 const DEFAULT_SPRING_BEHAVIOR = {
@@ -65,18 +63,49 @@ export interface StickToBottomOptions extends SpringBehavior {
   initialBehavior?: Behavior;
 }
 
+export type ScrollToBottomOptions =
+  | ScrollBehavior
+  | {
+      behavior?: Behavior;
+
+      /**
+       * Whether to wait for any existing scrolls to finish before
+       * performing this one.
+       *
+       * @default false
+       */
+      wait?: boolean;
+
+      /**
+       * Only scroll to the bottom if we're already at the bottom.
+       *
+       * @default false
+       */
+      onlyIfAlready?: boolean;
+
+      /**
+       * The duration in ms that this scroll event should persist for.
+       * Not to be confused with the duration of the animation -
+       * for that you should adjust the behavior option.
+       *
+       * @default 350
+       */
+      duration?: number | Promise<void>;
+    };
+
+export type ScrollToBottom = (scrollOptions?: ScrollToBottomOptions) => Promise<boolean> | boolean;
+
 const MIN_SCROLL_AMOUNT_PX = 0.5;
 const STICK_TO_BOTTOM_OFFSET_PX = 150;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
+const RETAIN_BEHAVIOR_DURATION_MS = 350;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
-  useEffect(() => {
-    optionsRef.current = options;
-  }, [options]);
+  optionsRef.current = options;
 
   const updateIsAtBottom = useCallback((isAtBottom: boolean) => {
     state.isAtBottom = isAtBottom;
@@ -101,10 +130,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return scrollRef.current?.scrollTop ?? 0;
       },
       set scrollTop(scrollTop: number) {
-        if (scrollTop > state.targetScrollTop) {
-          scrollTop = state.targetScrollTop;
-        }
-
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollTop;
           state.ignoreScrollToTop = scrollRef.current.scrollTop;
@@ -116,14 +141,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return 0;
         }
 
-        /**
-         * When at very end of the container, scroll back up very slighty to
-         * prevent the browser from auto-sticking the container to the bottom,
-         * when a child element height resizes (doesn't happen for additions to DOM)
-         * because the browser will try to adjust the scroll to compensate for this.
-         * A slight offset off the bottom will prevent this, and allow for a smooth
-         * animation instead of instant scrolling.
-         */
         return scrollRef.current.scrollHeight - MIN_SCROLL_AMOUNT_PX - scrollRef.current.clientHeight;
       },
       get scrollDifference() {
@@ -136,100 +153,138 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     };
   }, []);
 
-  const scrollComplete = useCallback((beforeNewAnimation = false) => {
-    if (beforeNewAnimation && state.animation) {
-      cancelAnimationFrame(state.animation);
+  const scrollToBottom = useCallback<ScrollToBottom>((scrollOptions = {}) => {
+    if (typeof scrollOptions === 'string') {
+      scrollOptions = { behavior: scrollOptions };
     }
 
-    state.accumulated = 0;
-    state.animation = undefined;
-    state.behavior = undefined;
-    state.listeners.forEach((resolve) => resolve());
-    state.listeners.clear();
-
-    if (beforeNewAnimation) {
-      return;
+    if (scrollOptions.onlyIfAlready && !state.isAtBottom) {
+      return false;
     }
 
-    const { lastTick } = state;
+    return new Promise<boolean>((resolve) => {
+      updateIsAtBottom(true);
 
-    requestAnimationFrame(() => {
-      if (lastTick === state.lastTick) {
-        state.lastTick = undefined;
-        state.velocity = 0;
+      let durationElapsed = false;
+
+      const tick = () => {
+        state.animation = undefined;
+
+        if (!state.isAtBottom) {
+          return next('end');
+        }
+
+        if (state.scrollTop >= state.targetScrollTop) {
+          return next('continue');
+        }
+
+        if (behavior === 'instant') {
+          state.scrollTop = state.targetScrollTop;
+
+          return next('continue');
+        }
+
+        const tick = performance.now();
+        const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
+
+        state.velocity =
+          (behavior.damping * state.velocity + behavior.stiffness * state.scrollDifference) / behavior.mass;
+        state.accumulated += state.velocity * tickDelta;
+        state.scrollTop += state.accumulated;
+        state.lastTick = tick;
+
+        if (state.accumulated >= MIN_SCROLL_AMOUNT_PX) {
+          state.accumulated = 0;
+        }
+
+        return next('continue');
+      };
+
+      const next = (step: 'end' | 'continue' | 'queue' | 'restart') => {
+        if (step === 'continue') {
+          const atStartTarget = state.scrollTop >= Math.min(startTarget, state.targetScrollTop);
+
+          if (!durationElapsed) {
+            startTarget = state.targetScrollTop;
+            return next('queue');
+          }
+
+          if (!atStartTarget) {
+            return next('queue');
+          }
+
+          next('end');
+
+          /**
+           * If we're still below the target, then queue
+           * up another scroll to the bottom with the last
+           * requested behavior.
+           */
+          if (state.scrollTop < state.targetScrollTop) {
+            scrollToBottom({
+              behavior: mergeBehaviors(optionsRef.current, optionsRef.current.resizeBehavior),
+              wait: true,
+            });
+          }
+
+          return null;
+        }
+
+        if (step !== 'queue') {
+          if (state.animation) {
+            cancelAnimationFrame(state.animation);
+            state.animation = undefined;
+          }
+
+          state.accumulated = 0;
+          state.behavior = undefined;
+        }
+
+        if (step === 'end') {
+          resolve(state.isAtBottom);
+        } else {
+          state.animation ||= requestAnimationFrame(tick);
+        }
+
+        if (step !== 'restart') {
+          const { lastTick } = state;
+
+          requestAnimationFrame(() => {
+            if (lastTick === state.lastTick) {
+              state.lastTick = undefined;
+              state.velocity = 0;
+            }
+          });
+        }
+
+        return null;
+      };
+
+      // IMPORTANT: next should be called before reading state
+      next(scrollOptions.wait ? 'queue' : 'restart');
+
+      let startTarget = state.targetScrollTop;
+      const behavior = mergeBehaviors(optionsRef.current, state.behavior, scrollOptions.behavior);
+      state.behavior = behavior;
+
+      if (scrollOptions.duration instanceof Promise) {
+        scrollOptions.duration.finally(() => {
+          durationElapsed = true;
+        });
+      } else {
+        setTimeout(() => {
+          durationElapsed = true;
+        }, scrollOptions.duration ?? RETAIN_BEHAVIOR_DURATION_MS);
       }
     });
   }, []);
 
-  const scrollToBottom = useCallback(async (scrollBehavior?: Behavior, waitForPendingScroll = false) => {
-    updateIsAtBottom(true);
-
-    if (!waitForPendingScroll) {
-      scrollComplete(true);
+  const handleScroll = useCallback(({ target }: Event) => {
+    if (target !== scrollRef.current) {
+      return;
     }
 
-    const behavior = mergeBehaviors(optionsRef.current, state.behavior, scrollBehavior);
-    state.behavior = behavior;
-
-    const { targetScrollTop } = state;
-
-    const animateScroll = () => {
-      state.animation = undefined;
-
-      if (!state.isAtBottom) {
-        return scrollComplete();
-      }
-
-      /**
-       * If we've completed either the initial target
-       * or the re-calculated target the complete the animation.
-       */
-      if (state.scrollTop >= Math.min(targetScrollTop, state.targetScrollTop)) {
-        /**
-         * If we're still below the target, then queue
-         * up another scroll to the bottom with the last
-         * requested behavior.
-         */
-        if (state.scrollTop < state.targetScrollTop) {
-          scrollToBottom(mergeBehaviors(optionsRef.current, optionsRef.current.resizeBehavior), true);
-        }
-
-        return scrollComplete();
-      }
-
-      if (behavior === 'instant') {
-        state.scrollTop = state.targetScrollTop;
-
-        return scrollComplete();
-      }
-
-      const tick = performance.now();
-      const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
-
-      state.velocity =
-        (behavior.damping * state.velocity + behavior.stiffness * state.scrollDifference) / behavior.mass;
-      state.accumulated += state.velocity * tickDelta;
-      state.scrollTop += state.accumulated;
-      state.lastTick = tick;
-
-      if (state.accumulated >= MIN_SCROLL_AMOUNT_PX) {
-        state.accumulated = 0;
-      }
-
-      state.animation = requestAnimationFrame(animateScroll);
-
-      return null;
-    };
-
-    state.animation ||= requestAnimationFrame(animateScroll);
-
-    await new Promise<void>((resolve) => state.listeners.add(resolve));
-
-    return state.isAtBottom;
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    const { scrollTop, ignoreScrollToTop, targetScrollTop } = state;
+    const { scrollTop, ignoreScrollToTop } = state;
     let { lastScrollTop = scrollTop } = state;
 
     state.lastScrollTop = scrollTop;
@@ -252,15 +307,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      * @see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228
      */
     setTimeout(() => {
-      /**
-       * Offset the scrollTop by MINIMUM_SCROLL_AMOUNT_PX.
-       */
-      if (scrollTop > targetScrollTop) {
-        state.scrollTop = targetScrollTop;
-
-        return;
-      }
-
       /**
        * When theres a resize difference ignore the resize event.
        */
@@ -315,19 +361,25 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
       state.resizeDifference = difference;
 
+      /**
+       * Sometimes the browser can overscroll past the target,
+       * so check for this and adjust appropriately.
+       */
+      if (state.scrollTop > state.targetScrollTop) {
+        state.scrollTop = state.targetScrollTop;
+      }
+
       if (difference >= 0) {
         /**
          * If it's a positive resize, scroll to the bottom when
          * we're already at the bottom.
          */
-        if (state.isAtBottom) {
-          const behavior = mergeBehaviors(
-            optionsRef.current,
-            previousHeight ? optionsRef.current.resizeBehavior : optionsRef.current.initialBehavior
-          );
+        const behavior = mergeBehaviors(
+          optionsRef.current,
+          previousHeight ? optionsRef.current.resizeBehavior : optionsRef.current.initialBehavior
+        );
 
-          scrollToBottom(behavior, true);
-        }
+        scrollToBottom({ behavior, wait: true, onlyIfAlready: true });
       } else {
         /**
          * Else if it's a negative resize, check if we're near the bottom
