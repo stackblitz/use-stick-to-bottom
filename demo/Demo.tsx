@@ -16,17 +16,17 @@ function ScrollToBottom() {
   );
 }
 
-function Messages({ behavior, speed }: { behavior: ScrollBehavior; speed: number }) {
+function Messages({ animation, speed }: { animation: ScrollBehavior; speed: number }) {
   const messages = useFakeMessages(speed);
 
   return (
     <div className="prose flex flex-col gap-2 h-[50vh] w-full">
-      <h2 className="flex justify-center">{behavior}:</h2>
+      <h2 className="flex justify-center">{animation}:</h2>
 
       <StickToBottom
         className="relative w-full"
-        resizeBehavior={behavior}
-        initialBehavior={behavior === 'instant' ? 'instant' : { mass: 10 }}
+        resizeAnimation={animation}
+        initialAnimation={animation === 'instant' ? 'instant' : { mass: 10 }}
       >
         {({ contentRef }) => (
           <>
@@ -59,8 +59,8 @@ export function Demo() {
       <Slider value={speed} onChange={(_, value) => setSpeed(value as number)} min={0} max={1} step={0.01}></Slider>
 
       <div className="flex gap-6 w-[100vw]">
-        <Messages speed={speed} behavior="smooth" />
-        <Messages speed={speed} behavior="instant" />
+        <Messages speed={speed} animation="smooth" />
+        <Messages speed={speed} animation="instant" />
       </div>
     </>
   );

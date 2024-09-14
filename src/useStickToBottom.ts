@@ -16,9 +16,11 @@ interface StickToBottomState {
   scrollDifference: number;
   resizeDifference: number;
 
-  animation?: ReturnType<typeof requestAnimationFrame>;
+  animation?: {
+    behavior: 'instant' | Required<SpringAnimation>;
+    promise: Promise<boolean>;
+  };
   lastTick?: number;
-  behavior?: 'instant' | Required<SpringBehavior>;
   velocity: number;
   accumulated: number;
 
@@ -29,7 +31,7 @@ interface StickToBottomState {
   resizeObserver?: ResizeObserver;
 }
 
-const DEFAULT_SPRING_BEHAVIOR = {
+const DEFAULT_SPRING_ANIMATION = {
   /**
    * A value from 0 to 1, on how much to damp the animation.
    * 0 means no damping, 1 means full damping.
@@ -54,19 +56,19 @@ const DEFAULT_SPRING_BEHAVIOR = {
   mass: 1.25,
 };
 
-export interface SpringBehavior extends Partial<typeof DEFAULT_SPRING_BEHAVIOR> {}
+export interface SpringAnimation extends Partial<typeof DEFAULT_SPRING_ANIMATION> {}
 
-export type Behavior = ScrollBehavior | SpringBehavior;
+export type Animation = ScrollBehavior | SpringAnimation;
 
-export interface StickToBottomOptions extends SpringBehavior {
-  resizeBehavior?: Behavior;
-  initialBehavior?: Behavior | boolean;
+export interface StickToBottomOptions extends SpringAnimation {
+  resizeAnimation?: Animation;
+  initialAnimation?: Animation | boolean;
 }
 
 export type ScrollToBottomOptions =
   | ScrollBehavior
   | {
-      behavior?: Behavior;
+      animation?: Animation;
 
       /**
        * Whether to wait for any existing scrolls to finish before
@@ -87,7 +89,7 @@ export type ScrollToBottomOptions =
       /**
        * The duration in ms that this scroll event should persist for.
        * Not to be confused with the duration of the animation -
-       * for that you should adjust the behavior option.
+       * for that you should adjust the animation option.
        *
        * @default 350
        */
@@ -98,11 +100,11 @@ export type ScrollToBottom = (scrollOptions?: ScrollToBottomOptions) => Promise<
 
 const STICK_TO_BOTTOM_OFFSET_PX = 150;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
-const RETAIN_BEHAVIOR_DURATION_MS = 350;
+const RETAIN_ANIMATION_DURATION_MS = 350;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
-  const [isAtBottom, updateIsAtBottom] = useState(options.initialBehavior !== false);
+  const [isAtBottom, updateIsAtBottom] = useState(options.initialAnimation !== false);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
   optionsRef.current = options;
@@ -155,129 +157,105 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
   const scrollToBottom = useCallback<ScrollToBottom>((scrollOptions = {}) => {
     if (typeof scrollOptions === 'string') {
-      scrollOptions = { behavior: scrollOptions };
+      scrollOptions = { animation: scrollOptions };
     }
 
-    if (scrollOptions.onlyIfAlready && !state.isAtBottom) {
-      return false;
-    }
-
-    return new Promise<boolean>((resolve) => {
+    if (!scrollOptions.onlyIfAlready) {
       setIsAtBottom(true);
+    }
 
-      const waitElapsed = Date.now() + (Number(scrollOptions.wait) || 0);
+    const waitElapsed = Date.now() + (Number(scrollOptions.wait) || 0);
+    const behavior = mergeAnimations(optionsRef.current, scrollOptions.animation);
 
-      let durationElapsed: number;
+    let durationElapsed: number;
+    let startTarget = state.targetScrollTop;
 
-      if (scrollOptions.duration instanceof Promise) {
-        scrollOptions.duration.finally(() => {
-          durationElapsed = Date.now();
-        });
-      } else {
-        durationElapsed = waitElapsed + (scrollOptions.duration ?? RETAIN_BEHAVIOR_DURATION_MS);
-      }
+    if (scrollOptions.duration instanceof Promise) {
+      scrollOptions.duration.finally(() => {
+        durationElapsed = Date.now();
+      });
+    } else {
+      durationElapsed = waitElapsed + (scrollOptions.duration ?? RETAIN_ANIMATION_DURATION_MS);
+    }
 
-      const tick = () => {
-        state.animation = undefined;
-
+    const next = async (): Promise<boolean> => {
+      const promise = new Promise(requestAnimationFrame).then(() => {
         if (!state.isAtBottom) {
-          return next('end');
-        }
+          state.animation = undefined;
 
-        if (waitElapsed > Date.now() || state.scrollTop >= state.targetScrollTop) {
-          return next('continue');
-        }
-
-        if (behavior === 'instant') {
-          state.scrollTop = state.targetScrollTop;
-
-          return next('continue');
+          return false;
         }
 
         const { scrollTop } = state;
         const tick = performance.now();
         const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
 
-        state.velocity =
-          (behavior.damping * state.velocity + behavior.stiffness * state.scrollDifference) / behavior.mass;
-        state.accumulated += state.velocity * tickDelta;
-        state.scrollTop += state.accumulated;
+        requestAnimationFrame(() => {
+          if (!state.animation) {
+            state.lastTick = undefined;
+            state.velocity = 0;
+          }
+        });
+
+        state.animation ||= { behavior, promise };
         state.lastTick = tick;
 
-        if (state.scrollTop !== scrollTop) {
-          state.accumulated = 0;
+        if (waitElapsed > Date.now()) {
+          return next();
         }
 
-        return next('continue');
-      };
-
-      const next = (step: 'end' | 'continue' | 'queue' | 'restart') => {
-        if (step === 'continue') {
-          const atStartTarget = state.scrollTop >= Math.min(startTarget, state.targetScrollTop);
-
-          if (Date.now() < durationElapsed) {
-            startTarget = state.targetScrollTop;
-            return next('queue');
-          }
-
-          if (!atStartTarget) {
-            return next('queue');
-          }
-
-          next('end');
-
-          /**
-           * If we're still below the target, then queue
-           * up another scroll to the bottom with the last
-           * requested behavior.
-           */
-          if (state.scrollTop < state.targetScrollTop) {
-            scrollToBottom({
-              behavior: mergeBehaviors(optionsRef.current, optionsRef.current.resizeBehavior),
-              wait: true,
-            });
-          }
-
-          return null;
+        if (durationElapsed > Date.now()) {
+          startTarget = state.targetScrollTop;
         }
 
-        if (step !== 'queue') {
-          if (state.animation) {
-            cancelAnimationFrame(state.animation);
-            state.animation = undefined;
-          }
-
-          state.accumulated = 0;
-          state.behavior = undefined;
-        }
-
-        if (step === 'end') {
-          resolve(state.isAtBottom);
-        } else {
-          state.animation ||= requestAnimationFrame(tick);
-        }
-
-        if (step !== 'restart') {
-          const { lastTick } = state;
-
-          requestAnimationFrame(() => {
-            if (lastTick === state.lastTick) {
-              state.lastTick = undefined;
-              state.velocity = 0;
+        if (scrollTop < startTarget) {
+          if (state.animation?.behavior === behavior) {
+            if (behavior === 'instant') {
+              state.scrollTop = state.targetScrollTop;
+              return next();
             }
+
+            state.velocity =
+              (behavior.damping * state.velocity + behavior.stiffness * state.scrollDifference) / behavior.mass;
+            state.accumulated += state.velocity * tickDelta;
+            state.scrollTop += state.accumulated;
+
+            if (state.scrollTop !== scrollTop) {
+              state.accumulated = 0;
+            }
+          }
+
+          return next();
+        }
+
+        state.animation = undefined;
+
+        /**
+         * If we're still below the target, then queue
+         * up another scroll to the bottom with the last
+         * requested animatino.
+         */
+        if (state.scrollTop < state.targetScrollTop) {
+          return scrollToBottom({
+            animation: mergeAnimations(optionsRef.current, optionsRef.current.resizeAnimation),
           });
         }
 
-        return null;
-      };
+        return state.isAtBottom;
+      });
 
-      // IMPORTANT: next should be called before reading state
-      next(scrollOptions.wait === true ? 'queue' : 'restart');
+      return promise;
+    };
 
-      let startTarget = state.targetScrollTop;
-      const behavior = mergeBehaviors(optionsRef.current, state.behavior, scrollOptions.behavior);
-      state.behavior = behavior;
-    });
+    if (scrollOptions.wait !== true) {
+      state.animation = undefined;
+    }
+
+    if (state.animation?.behavior === behavior) {
+      return state.animation.promise;
+    }
+
+    return next();
   }, []);
 
   const handleScroll = useCallback(({ target }: Event) => {
@@ -377,12 +355,12 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          * If it's a positive resize, scroll to the bottom when
          * we're already at the bottom.
          */
-        const behavior = mergeBehaviors(
+        const animation = mergeAnimations(
           optionsRef.current,
-          previousHeight ? optionsRef.current.resizeBehavior : optionsRef.current.initialBehavior
+          previousHeight ? optionsRef.current.resizeAnimation : optionsRef.current.initialAnimation
         );
 
-        scrollToBottom({ behavior, wait: true, onlyIfAlready: true });
+        scrollToBottom({ animation, wait: true, onlyIfAlready: true });
       } else {
         /**
          * Else if it's a negative resize, check if we're near the bottom
@@ -434,26 +412,34 @@ function useRefCallback<T extends (ref: HTMLDivElement | null) => any>(callback:
   return result;
 }
 
-function mergeBehaviors(...behaviors: (Behavior | boolean | undefined)[]) {
-  const result = { ...DEFAULT_SPRING_BEHAVIOR };
+const animationCache = new Map<string, Readonly<Required<SpringAnimation>>>();
+
+function mergeAnimations(...animations: (Animation | boolean | undefined)[]) {
+  const result = { ...DEFAULT_SPRING_ANIMATION };
   let instant = false;
 
-  for (const behavior of behaviors) {
-    if (behavior === 'instant') {
+  for (const animation of animations) {
+    if (animation === 'instant') {
       instant = true;
       continue;
     }
 
-    if (typeof behavior !== 'object') {
+    if (typeof animation !== 'object') {
       continue;
     }
 
     instant = false;
 
-    result.damping = behavior.damping ?? result.damping;
-    result.stiffness = behavior.stiffness ?? result.stiffness;
-    result.mass = behavior.mass ?? result.mass;
+    result.damping = animation.damping ?? result.damping;
+    result.stiffness = animation.stiffness ?? result.stiffness;
+    result.mass = animation.mass ?? result.mass;
   }
 
-  return instant ? 'instant' : result;
+  const key = JSON.stringify(result);
+
+  if (!animationCache.has(key)) {
+    animationCache.set(key, Object.freeze(result));
+  }
+
+  return instant ? 'instant' : animationCache.get(key)!;
 }
