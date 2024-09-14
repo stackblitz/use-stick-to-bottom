@@ -165,7 +165,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     return new Promise<boolean>((resolve) => {
       setIsAtBottom(true);
 
-      const waitElapsed = Date.now() + (Number(scrollOptions.wait) ?? 0);
+      const waitElapsed = Date.now() + (Number(scrollOptions.wait) || 0);
 
       let durationElapsed: number;
 
