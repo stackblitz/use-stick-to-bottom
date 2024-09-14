@@ -110,6 +110,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   optionsRef.current = options;
 
   const setIsAtBottom = useCallback((isAtBottom: boolean) => {
+    console.log(isAtBottom);
     state.isAtBottom = isAtBottom;
     updateIsAtBottom(isAtBottom);
   }, []);
@@ -309,12 +310,22 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   }, []);
 
   const handleWheel = useCallback(({ target, deltaY }: WheelEvent) => {
+    let element = target as HTMLElement;
+
+    while (!['scroll', 'auto'].includes(getComputedStyle(element).overflow)) {
+      if (!element.parentElement) {
+        return;
+      }
+
+      element = element.parentElement;
+    }
+
     /**
      * The browser may cancel the scrolling from the mouse wheel
      * if we update it from the animation in meantime.
      * To prevent this, always escape when the wheel is scrolled up.
      */
-    if (target === scrollRef.current && deltaY < 0) {
+    if (element === scrollRef.current && deltaY < 0) {
       setEscapedFromLock(true);
       setIsAtBottom(false);
     }
