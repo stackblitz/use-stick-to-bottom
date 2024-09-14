@@ -318,17 +318,14 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       const isScrollingDown = scrollTop > lastScrollTop;
       const isScrollingUp = scrollTop < lastScrollTop;
 
-      if (!state.escapedFromLock && isScrollingUp) {
+      if (isScrollingUp) {
         setEscapedFromLock(true);
         setIsAtBottom(false);
-      } else if (isScrollingDown) {
-        if (state.escapedFromLock) {
-          setEscapedFromLock(false);
-        }
+      }
 
-        if (!state.isAtBottom) {
-          setIsAtBottom(state.isNearBottom);
-        }
+      if (isScrollingDown) {
+        setEscapedFromLock(false);
+        setIsAtBottom(state.isAtBottom || state.isNearBottom);
       }
     }, 1);
   }, []);
