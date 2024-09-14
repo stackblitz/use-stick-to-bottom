@@ -31,31 +31,29 @@ import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
 
 function Chat() {
   return (
-    <StickToBottom className="h-[50vh]" resizeAnimation="smooth" initialAnimation="smooth">
-      {({ contentRef, scrollToBottom }) => (
-        <>
-          <div className="flex flex-col gap-4" ref={contentRef}>
-            {messages.map((message) => (
-              <Message key={message.id} message={message} />
-            ))}
-          </div>
+    <StickToBottom className="h-[50vh] relative" resizeAnimation="smooth" initialAnimation="smooth">
+      <StickToBottom.Content className="flex flex-col gap-4">
+        {messages.map((message) => (
+          <Message key={message.id} message={message} />
+        ))}
 
-          <ScrollToBottom />
+      </StickToBottom.Content>
 
-          <ChatBox onSubmit={() => scrollToBottom()} />
-        </>
-      )}
-    </StickToBottom>
+      <ScrollToBottom />
+
+      {/* This component calls uses `useStickToBottomContext` to scroll to bottom when the user enters a message */}
+      <ChatBox />
+    </StickToBottom.Scroll>
   );
 }
 
 function ScrollToBottom() {
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  const { isAtBottom, scrollToBottom } = ();
 
   return (
     !isAtBottom && (
       <button
-        className="sticky i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
+        className="absolute i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
         onClick={() => scrollToBottom()}
       />
     )

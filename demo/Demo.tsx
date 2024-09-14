@@ -9,7 +9,7 @@ function ScrollToBottom() {
   return (
     !isAtBottom && (
       <button
-        className="sticky i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
+        className="absolute i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
         onClick={() => scrollToBottom()}
       />
     )
@@ -20,32 +20,28 @@ function Messages({ animation, speed }: { animation: ScrollBehavior; speed: numb
   const messages = useFakeMessages(speed);
 
   return (
-    <div className="prose flex flex-col gap-2 h-[50vh] w-full">
+    <div className="prose flex flex-col gap-2 w-full">
       <h2 className="flex justify-center">{animation}:</h2>
 
       <StickToBottom
-        className="relative w-full"
+        className="relative h-[50vh] w-full"
         resizeAnimation={animation}
         initialAnimation={animation === 'instant' ? 'instant' : { mass: 10 }}
       >
-        {({ contentRef }) => (
-          <>
-            <div className="flex flex-col gap-4 p-6" ref={contentRef}>
-              {[...Array(10)].map((_, i) => (
-                <Message key={i}>
-                  <h1>This is a test</h1>
-                  more testing text...
-                </Message>
-              ))}
+        <StickToBottom.Content className="flex flex-col gap-4 p-6">
+          {[...Array(10)].map((_, i) => (
+            <Message key={i}>
+              <h1>This is a test</h1>
+              more testing text...
+            </Message>
+          ))}
 
-              {messages.map((message, i) => (
-                <Message key={i}>{message}</Message>
-              ))}
-            </div>
+          {messages.map((message, i) => (
+            <Message key={i}>{message}</Message>
+          ))}
+        </StickToBottom.Content>
 
-            <ScrollToBottom />
-          </>
-        )}
+        <ScrollToBottom />
       </StickToBottom>
     </div>
   );

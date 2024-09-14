@@ -3,6 +3,7 @@ import { ScrollToBottom, StickToBottomOptions, useStickToBottom } from './useSti
 
 export interface StickToBottomContext {
   contentRef: RefCallback<HTMLDivElement>;
+  scrollRef: RefCallback<HTMLDivElement>;
   scrollToBottom: ScrollToBottom;
   isAtBottom: boolean;
   escapedFromLock: boolean;
@@ -14,7 +15,7 @@ export interface StickToBottomProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
     StickToBottomOptions {
   instance?: ReturnType<typeof useStickToBottom>;
-  children: (context: StickToBottomContext) => ReactNode;
+  children: ((context: StickToBottomContext) => ReactNode) | ReactNode;
 }
 
 export function StickToBottom({
@@ -39,6 +40,7 @@ export function StickToBottom({
   const context = useMemo<StickToBottomContext>(
     () => ({
       scrollToBottom,
+      scrollRef,
       isAtBottom,
       escapedFromLock,
       contentRef,
@@ -58,11 +60,33 @@ export function StickToBottom({
 
   return (
     <StickToBottomContext.Provider value={context}>
-      <div {...props} ref={scrollRef}>
-        {children(context)}
-      </div>
+      <div {...props}>{typeof children === 'function' ? children(context) : children}</div>
     </StickToBottomContext.Provider>
   );
+}
+
+export namespace StickToBottom {
+  export interface ContentProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+    children: ((context: StickToBottomContext) => ReactNode) | ReactNode;
+  }
+
+  export function Content({ children, ...props }: ContentProps) {
+    const context = useStickToBottomContext();
+
+    return (
+      <div
+        ref={context.scrollRef}
+        style={{
+          height: '100%',
+          width: '100%',
+        }}
+      >
+        <div {...props} ref={context.contentRef}>
+          {typeof children === 'function' ? children(context) : children}
+        </div>
+      </div>
+    );
+  }
 }
 
 /**
