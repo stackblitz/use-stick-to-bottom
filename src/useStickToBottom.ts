@@ -110,7 +110,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   optionsRef.current = options;
 
   const setIsAtBottom = useCallback((isAtBottom: boolean) => {
-    console.log(isAtBottom);
     state.isAtBottom = isAtBottom;
     updateIsAtBottom(isAtBottom);
   }, []);
