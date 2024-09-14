@@ -96,7 +96,6 @@ export type ScrollToBottomOptions =
 
 export type ScrollToBottom = (scrollOptions?: ScrollToBottomOptions) => Promise<boolean> | boolean;
 
-const MIN_SCROLL_AMOUNT_PX = 0.5;
 const STICK_TO_BOTTOM_OFFSET_PX = 150;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
 const RETAIN_BEHAVIOR_DURATION_MS = 350;
@@ -142,7 +141,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return 0;
         }
 
-        return scrollRef.current.scrollHeight - MIN_SCROLL_AMOUNT_PX - scrollRef.current.clientHeight;
+        return scrollRef.current.scrollHeight - 1 - scrollRef.current.clientHeight;
       },
       get scrollDifference() {
         return this.targetScrollTop - this.scrollTop;
@@ -195,6 +194,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return next('continue');
         }
 
+        const { scrollTop } = state;
         const tick = performance.now();
         const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
 
@@ -204,7 +204,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         state.scrollTop += state.accumulated;
         state.lastTick = tick;
 
-        if (state.accumulated >= MIN_SCROLL_AMOUNT_PX) {
+        if (state.scrollTop !== scrollTop) {
           state.accumulated = 0;
         }
 
