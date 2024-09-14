@@ -60,7 +60,7 @@ export type Behavior = ScrollBehavior | SpringBehavior;
 
 export interface StickToBottomOptions extends SpringBehavior {
   resizeBehavior?: Behavior;
-  initialBehavior?: Behavior;
+  initialBehavior?: Behavior | boolean;
 }
 
 export type ScrollToBottomOptions =
@@ -70,11 +70,12 @@ export type ScrollToBottomOptions =
 
       /**
        * Whether to wait for any existing scrolls to finish before
-       * performing this one.
+       * performing this one. Or if a millisecond is passed,
+       * it will wait for that duration before performing the scroll.
        *
        * @default false
        */
-      wait?: boolean;
+      wait?: boolean | number;
 
       /**
        * Only scroll to the bottom if we're already at the bottom.
@@ -102,14 +103,14 @@ const RETAIN_BEHAVIOR_DURATION_MS = 350;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isAtBottom, updateIsAtBottom] = useState(options.initialBehavior !== false);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
   optionsRef.current = options;
 
-  const updateIsAtBottom = useCallback((isAtBottom: boolean) => {
+  const setIsAtBottom = useCallback((isAtBottom: boolean) => {
     state.isAtBottom = isAtBottom;
-    setIsAtBottom(isAtBottom);
+    updateIsAtBottom(isAtBottom);
   }, []);
 
   const setEscapedFromLock = useCallback((escapedFromLock: boolean) => {
@@ -163,9 +164,19 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     }
 
     return new Promise<boolean>((resolve) => {
-      updateIsAtBottom(true);
+      setIsAtBottom(true);
 
-      let durationElapsed = false;
+      const waitElapsed = Date.now() + (Number(scrollOptions.wait) ?? 0);
+
+      let durationElapsed: number;
+
+      if (scrollOptions.duration instanceof Promise) {
+        scrollOptions.duration.finally(() => {
+          durationElapsed = Date.now();
+        });
+      } else {
+        durationElapsed = waitElapsed + (scrollOptions.duration ?? RETAIN_BEHAVIOR_DURATION_MS);
+      }
 
       const tick = () => {
         state.animation = undefined;
@@ -174,7 +185,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return next('end');
         }
 
-        if (state.scrollTop >= state.targetScrollTop) {
+        if (waitElapsed > Date.now() || state.scrollTop >= state.targetScrollTop) {
           return next('continue');
         }
 
@@ -204,7 +215,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         if (step === 'continue') {
           const atStartTarget = state.scrollTop >= Math.min(startTarget, state.targetScrollTop);
 
-          if (!durationElapsed) {
+          if (Date.now() < durationElapsed) {
             startTarget = state.targetScrollTop;
             return next('queue');
           }
@@ -261,21 +272,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       };
 
       // IMPORTANT: next should be called before reading state
-      next(scrollOptions.wait ? 'queue' : 'restart');
+      next(scrollOptions.wait === true ? 'queue' : 'restart');
 
       let startTarget = state.targetScrollTop;
       const behavior = mergeBehaviors(optionsRef.current, state.behavior, scrollOptions.behavior);
       state.behavior = behavior;
-
-      if (scrollOptions.duration instanceof Promise) {
-        scrollOptions.duration.finally(() => {
-          durationElapsed = true;
-        });
-      } else {
-        setTimeout(() => {
-          durationElapsed = true;
-        }, scrollOptions.duration ?? RETAIN_BEHAVIOR_DURATION_MS);
-      }
     });
   }, []);
 
@@ -319,11 +320,16 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
       if (!state.escapedFromLock && isScrollingUp) {
         setEscapedFromLock(true);
-      } else if (state.escapedFromLock && isScrollingDown) {
-        setEscapedFromLock(false);
-      }
+        setIsAtBottom(false);
+      } else if (isScrollingDown) {
+        if (state.escapedFromLock) {
+          setEscapedFromLock(false);
+        }
 
-      updateIsAtBottom(!state.escapedFromLock && state.isNearBottom);
+        if (!state.isAtBottom) {
+          setIsAtBottom(state.isNearBottom);
+        }
+      }
     }, 1);
   }, []);
 
@@ -335,7 +341,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      */
     if (target === scrollRef.current && deltaY < 0) {
       setEscapedFromLock(true);
-      updateIsAtBottom(false);
+      setIsAtBottom(false);
     }
   }, []);
 
@@ -388,7 +394,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          */
         if (state.isNearBottom) {
           setEscapedFromLock(false);
-          updateIsAtBottom(true);
+          setIsAtBottom(true);
         }
       }
 
@@ -431,7 +437,7 @@ function useRefCallback<T extends (ref: HTMLDivElement | null) => any>(callback:
   return result;
 }
 
-function mergeBehaviors(...behaviors: (Behavior | undefined)[]) {
+function mergeBehaviors(...behaviors: (Behavior | boolean | undefined)[]) {
   const result = { ...DEFAULT_SPRING_BEHAVIOR };
   let instant = false;
 
@@ -441,11 +447,11 @@ function mergeBehaviors(...behaviors: (Behavior | undefined)[]) {
       continue;
     }
 
-    instant = false;
-
     if (typeof behavior !== 'object') {
       continue;
     }
+
+    instant = false;
 
     result.damping = behavior.damping ?? result.damping;
     result.stiffness = behavior.stiffness ?? result.stiffness;
