@@ -190,14 +190,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         const { scrollTop } = state;
         const tick = performance.now();
         const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
-
-        requestAnimationFrame(() => {
-          if (!state.animation) {
-            state.lastTick = undefined;
-            state.velocity = 0;
-          }
-        });
-
         state.animation ||= { behavior, promise };
         state.lastTick = tick;
 
@@ -209,7 +201,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           startTarget = state.targetScrollTop;
         }
 
-        if (scrollTop < startTarget) {
+        if (scrollTop < Math.min(startTarget, state.targetScrollTop)) {
           if (state.animation?.behavior === behavior) {
             if (behavior === 'instant') {
               state.scrollTop = state.targetScrollTop;
@@ -245,7 +237,14 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return state.isAtBottom;
       });
 
-      return promise;
+      return promise.then((isAtBottom) => {
+        if (!state.animation) {
+          state.lastTick = undefined;
+          state.velocity = 0;
+        }
+
+        return isAtBottom;
+      });
     };
 
     if (scrollOptions.wait !== true) {
@@ -416,7 +415,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     contentRef,
     scrollRef,
     scrollToBottom,
-    isAtBottom,
+    isAtBottom: isAtBottom || isNearBottom,
     isNearBottom,
     escapedFromLock,
   };
