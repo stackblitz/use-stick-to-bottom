@@ -191,14 +191,13 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         const tick = performance.now();
         const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
         state.animation ||= { behavior, promise };
-        state.lastTick = tick;
+
+        if (state.animation.behavior === behavior) {
+          state.lastTick = tick;
+        }
 
         if (waitElapsed > Date.now()) {
           return next();
-        }
-
-        if (durationElapsed > Date.now()) {
-          startTarget = state.targetScrollTop;
         }
 
         if (scrollTop < Math.min(startTarget, state.targetScrollTop)) {
@@ -217,6 +216,12 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
               state.accumulated = 0;
             }
           }
+
+          return next();
+        }
+
+        if (durationElapsed > Date.now()) {
+          startTarget = state.targetScrollTop;
 
           return next();
         }
