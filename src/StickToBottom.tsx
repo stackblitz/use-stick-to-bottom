@@ -1,5 +1,6 @@
-import React, { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
-import { ScrollToBottom, StickToBottomOptions, useStickToBottom } from './useStickToBottom';
+import * as React from 'react';
+import { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
+import { ScrollToBottom, StickToBottomOptions, useStickToBottom } from './useStickToBottom.js';
 
 export interface StickToBottomContext {
   contentRef: RefCallback<HTMLDivElement>;
