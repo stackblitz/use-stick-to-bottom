@@ -41,7 +41,7 @@ function Chat() {
 
       <ScrollToBottom />
 
-      {/* This component calls uses `useStickToBottomContext` to scroll to bottom when the user enters a message */}
+      {/* This component uses `useStickToBottomContext` to scroll to bottom when the user enters a message */}
       <ChatBox />
     </StickToBottom.Scroll>
   );
