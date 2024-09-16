@@ -48,10 +48,10 @@ function Chat() {
 }
 
 function ScrollToBottom() {
-  const { isAtBottom, scrollToBottom } = ();
+  const { isNearBottom, scrollToBottom } = useStickToBottomContext();
 
   return (
-    !isAtBottom && (
+    !isNearBottom && (
       <button
         className="absolute i-ph-arrow-circle-down-fill text-4xl rounded-lg left-[50%] translate-x-[-50%] bottom-0"
         onClick={() => scrollToBottom()}

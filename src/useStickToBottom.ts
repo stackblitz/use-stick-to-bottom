@@ -105,6 +105,7 @@ const RETAIN_ANIMATION_DURATION_MS = 350;
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
   const [isAtBottom, updateIsAtBottom] = useState(options.initialAnimation !== false);
+  const [isNearBottom, setIsNearBottom] = useState(options.initialAnimation !== false);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
   optionsRef.current = options;
@@ -278,6 +279,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       lastScrollTop = ignoreScrollToTop;
     }
 
+    setIsNearBottom(state.isNearBottom);
+
     /**
      * Scroll events may come before a ResizeObserver event,
      * so in order to ignore resize events correctly we use a
@@ -363,6 +366,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         state.scrollTop = state.targetScrollTop;
       }
 
+      setIsNearBottom(state.isNearBottom);
+
       if (difference >= 0) {
         /**
          * If it's a positive resize, scroll to the bottom when
@@ -412,6 +417,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     scrollRef,
     scrollToBottom,
     isAtBottom,
+    isNearBottom,
     escapedFromLock,
   };
 };

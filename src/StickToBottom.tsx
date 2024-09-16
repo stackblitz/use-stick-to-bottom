@@ -6,6 +6,7 @@ export interface StickToBottomContext {
   scrollRef: RefCallback<HTMLDivElement>;
   scrollToBottom: ScrollToBottom;
   isAtBottom: boolean;
+  isNearBottom: boolean;
   escapedFromLock: boolean;
 }
 
@@ -35,13 +36,15 @@ export function StickToBottom({
     resizeAnimation,
     initialAnimation,
   });
-  const { scrollRef, contentRef, scrollToBottom, isAtBottom, escapedFromLock } = instance ?? defaultInstance;
+  const { scrollRef, contentRef, scrollToBottom, isAtBottom, isNearBottom, escapedFromLock } =
+    instance ?? defaultInstance;
 
   const context = useMemo<StickToBottomContext>(
     () => ({
       scrollToBottom,
       scrollRef,
       isAtBottom,
+      isNearBottom,
       escapedFromLock,
       contentRef,
     }),
