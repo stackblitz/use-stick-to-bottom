@@ -98,7 +98,7 @@ export type ScrollToBottomOptions =
 
 export type ScrollToBottom = (scrollOptions?: ScrollToBottomOptions) => Promise<boolean> | boolean;
 
-const STICK_TO_BOTTOM_OFFSET_PX = 150;
+const STICK_TO_BOTTOM_OFFSET_PX = 70;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
 const RETAIN_ANIMATION_DURATION_MS = 350;
 
