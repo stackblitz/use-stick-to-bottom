@@ -303,7 +303,10 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
       if (isScrollingDown) {
         setEscapedFromLock(false);
-        setIsAtBottom(state.isAtBottom || state.isNearBottom);
+      }
+
+      if (!state.escapedFromLock && state.isNearBottom) {
+        setIsAtBottom(true);
       }
     }, 1);
   }, []);
@@ -324,7 +327,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
      * if we update it from the animation in meantime.
      * To prevent this, always escape when the wheel is scrolled up.
      */
-    if (element === scrollRef.current && deltaY < 0) {
+    if (element === scrollRef.current && deltaY < 0 && scrollRef.current.clientWidth < scrollRef.current.clientHeight) {
       setEscapedFromLock(true);
       setIsAtBottom(false);
     }
