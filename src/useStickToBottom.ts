@@ -176,7 +176,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         durationElapsed = Date.now();
       });
     } else {
-      durationElapsed = waitElapsed + (scrollOptions.duration ?? RETAIN_ANIMATION_DURATION_MS);
+      durationElapsed =
+        waitElapsed + (scrollOptions.duration ?? (behavior === 'instant' ? 0 : RETAIN_ANIMATION_DURATION_MS));
     }
 
     const next = async (): Promise<boolean> => {
