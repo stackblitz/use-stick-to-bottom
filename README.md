@@ -31,7 +31,7 @@ import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
 
 function Chat() {
   return (
-    <StickToBottom className="h-[50vh] relative" resizeAnimation="smooth" initialAnimation="smooth">
+    <StickToBottom className="h-[50vh] relative" resize="smooth" initial="smooth">
       <StickToBottom.Content className="flex flex-col gap-4">
         {messages.map((message) => (
           <Message key={message.id} message={message} />

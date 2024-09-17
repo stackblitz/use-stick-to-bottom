@@ -61,8 +61,8 @@ export interface SpringAnimation extends Partial<typeof DEFAULT_SPRING_ANIMATION
 export type Animation = ScrollBehavior | SpringAnimation;
 
 export interface StickToBottomOptions extends SpringAnimation {
-  resizeAnimation?: Animation;
-  initialAnimation?: Animation | boolean;
+  resize?: Animation;
+  initial?: Animation | boolean;
 }
 
 export type ScrollToBottomOptions =
@@ -104,8 +104,8 @@ const RETAIN_ANIMATION_DURATION_MS = 350;
 
 export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   const [escapedFromLock, updateEscapedFromLock] = useState(false);
-  const [isAtBottom, updateIsAtBottom] = useState(options.initialAnimation !== false);
-  const [isNearBottom, setIsNearBottom] = useState(options.initialAnimation !== false);
+  const [isAtBottom, updateIsAtBottom] = useState(options.initial !== false);
+  const [isNearBottom, setIsNearBottom] = useState(false);
 
   const optionsRef = useRef<StickToBottomOptions>(null!);
   optionsRef.current = options;
@@ -236,7 +236,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          */
         if (state.scrollTop < state.targetScrollTop) {
           return scrollToBottom({
-            animation: mergeAnimations(optionsRef.current, optionsRef.current.resizeAnimation),
+            animation: mergeAnimations(optionsRef.current, optionsRef.current.resize),
           });
         }
 
@@ -384,7 +384,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          */
         const animation = mergeAnimations(
           optionsRef.current,
-          previousHeight ? optionsRef.current.resizeAnimation : optionsRef.current.initialAnimation
+          previousHeight ? optionsRef.current.resize : optionsRef.current.initial
         );
 
         scrollToBottom({ animation, wait: true, onlyIfAlready: true });

@@ -25,8 +25,8 @@ function Messages({ animation, speed }: { animation: ScrollBehavior; speed: numb
 
       <StickToBottom
         className="relative h-[50vh] w-full"
-        resizeAnimation={animation}
-        initialAnimation={animation === 'instant' ? 'instant' : { mass: 10 }}
+        resize={animation}
+        initial={animation === 'instant' ? 'instant' : { mass: 10 }}
       >
         <StickToBottom.Content className="flex flex-col gap-4 p-6">
           {[...Array(10)].map((_, i) => (

@@ -23,8 +23,8 @@ export interface StickToBottomProps
 export function StickToBottom({
   instance,
   children,
-  resizeAnimation,
-  initialAnimation,
+  resize,
+  initial,
   mass,
   damping,
   stiffness,
@@ -34,8 +34,8 @@ export function StickToBottom({
     mass,
     damping,
     stiffness,
-    resizeAnimation,
-    initialAnimation,
+    resize,
+    initial,
   });
   const { scrollRef, contentRef, scrollToBottom, isAtBottom, isNearBottom, escapedFromLock } =
     instance ?? defaultInstance;
