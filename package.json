@@ -1,9 +1,48 @@
 {
   "name": "use-stick-to-bottom",
-  "version": "0.0.1",
-  "main": "index.js",
-  "repository": "https://github.com/samdenty/use-stick-to-bottom",
-  "author": "Sam Denty",
+  "description": "A lightweight React Hook intended mainly for AI chat applications, for smoothly sticking to bottom of messages",
+  "private": false,
+  "version": "1.0.26",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
-  "private": false
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite",
+    "build": "rm -rf dist > /dev/null 2>&1; tsc -b",
+    "prepublishOnly": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stackblitz/use-stick-to-bottom.git"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+  },
+  "devDependencies": {
+    "@egoist/tailwindcss-icons": "^1.8.1",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@iconify-json/ph": "^1.2.0",
+    "@mui/material": "^6.1.0",
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "globals": "^15.9.0",
+    "lorem-ipsum": "^2.0.8",
+    "postcss": "^8.4.45",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+    "react-dom": "^18.0.0",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1",
+    "vite-plugin-dts": "^4.2.1"
+  },
+  "author": "Sam Denty <samddenty@gmail.com> (http://samdenty.com/)"
 }
