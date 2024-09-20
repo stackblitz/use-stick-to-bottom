@@ -18,6 +18,7 @@ interface StickToBottomState {
 
   animation?: {
     behavior: 'instant' | Required<SpringAnimation>;
+    ignoreEscapes: boolean;
     promise: Promise<boolean>;
   };
   lastTick?: number;
@@ -173,6 +174,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const waitElapsed = Date.now() + (Number(scrollOptions.wait) || 0);
     const behavior = mergeAnimations(optionsRef.current, scrollOptions.animation);
+    const { ignoreEscapes = false } = scrollOptions;
 
     let durationElapsed: number;
     let startTarget = state.targetScrollTop;
@@ -188,23 +190,19 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const next = async (): Promise<boolean> => {
       const promise = new Promise(requestAnimationFrame).then(() => {
-        const { scrollTop } = state;
-        const tick = performance.now();
-        const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
-        state.animation ||= { behavior, promise };
-
-        if (state.animation.behavior === behavior) {
-          state.lastTick = tick;
-
-          if (scrollOptions.ignoreEscapes) {
-            setIsAtBottom(true);
-          }
-        }
-
         if (!state.isAtBottom) {
           state.animation = undefined;
 
           return false;
+        }
+
+        const { scrollTop } = state;
+        const tick = performance.now();
+        const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
+        state.animation ||= { behavior, promise, ignoreEscapes };
+
+        if (state.animation.behavior === behavior) {
+          state.lastTick = tick;
         }
 
         if (waitElapsed > Date.now()) {
@@ -247,7 +245,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         if (state.scrollTop < state.targetScrollTop) {
           return scrollToBottom({
             animation: mergeAnimations(optionsRef.current, optionsRef.current.resize),
-            ignoreEscapes: scrollOptions.ignoreEscapes,
+            ignoreEscapes,
           });
         }
 
@@ -317,7 +315,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       const isScrollingDown = scrollTop > lastScrollTop;
       const isScrollingUp = scrollTop < lastScrollTop;
 
-      if (isScrollingUp) {
+      if (isScrollingUp && !state.animation?.ignoreEscapes) {
         setEscapedFromLock(true);
         setIsAtBottom(false);
       }
@@ -351,7 +349,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     if (
       element === scrollRef.current &&
       deltaY < 0 &&
-      scrollRef.current.scrollHeight > scrollRef.current.clientHeight
+      scrollRef.current.scrollHeight > scrollRef.current.clientHeight &&
+      !state.animation?.ignoreEscapes
     ) {
       setEscapedFromLock(true);
       setIsAtBottom(false);
