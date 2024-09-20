@@ -83,7 +83,7 @@ export type ScrollToBottomOptions =
        * Whether to prevent the user from escaping the scroll,
        * by scrolling up with their mouse.
        */
-      preventUserEscaping?: boolean;
+      ignoreEscapes?: boolean;
 
       /**
        * Only scroll to the bottom if we're already at the bottom.
@@ -188,7 +188,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const next = async (): Promise<boolean> => {
       const promise = new Promise(requestAnimationFrame).then(() => {
-        if (!state.isAtBottom && !scrollOptions.preventUserEscaping) {
+        if (!state.isAtBottom && !scrollOptions.ignoreEscapes) {
           state.animation = undefined;
 
           return false;
@@ -243,7 +243,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         if (state.scrollTop < state.targetScrollTop) {
           return scrollToBottom({
             animation: mergeAnimations(optionsRef.current, optionsRef.current.resize),
-            preventUserEscaping: scrollOptions.preventUserEscaping,
+            ignoreEscapes: scrollOptions.ignoreEscapes,
           });
         }
 
