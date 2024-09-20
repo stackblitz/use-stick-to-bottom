@@ -188,7 +188,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const next = async (): Promise<boolean> => {
       const promise = new Promise(requestAnimationFrame).then(() => {
-        if (!state.isAtBottom && !scrollOptions.ignoreEscapes) {
+        if (scrollOptions.ignoreEscapes) {
+          setIsAtBottom(true);
+        }
+
+        if (!state.isAtBottom) {
           state.animation = undefined;
 
           return false;
