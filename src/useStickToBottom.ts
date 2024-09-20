@@ -244,10 +244,12 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       });
 
       return promise.then((isAtBottom) => {
-        if (!state.animation) {
-          state.lastTick = undefined;
-          state.velocity = 0;
-        }
+        requestAnimationFrame(() => {
+          if (!state.animation) {
+            state.lastTick = undefined;
+            state.velocity = 0;
+          }
+        });
 
         return isAtBottom;
       });
