@@ -188,16 +188,6 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
     const next = async (): Promise<boolean> => {
       const promise = new Promise(requestAnimationFrame).then(() => {
-        if (scrollOptions.ignoreEscapes) {
-          setIsAtBottom(true);
-        }
-
-        if (!state.isAtBottom) {
-          state.animation = undefined;
-
-          return false;
-        }
-
         const { scrollTop } = state;
         const tick = performance.now();
         const tickDelta = (tick - (state.lastTick ?? tick)) / SIXTY_FPS_INTERVAL_MS;
@@ -205,6 +195,16 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
         if (state.animation.behavior === behavior) {
           state.lastTick = tick;
+
+          if (scrollOptions.ignoreEscapes) {
+            setIsAtBottom(true);
+          }
+        }
+
+        if (!state.isAtBottom) {
+          state.animation = undefined;
+
+          return false;
         }
 
         if (waitElapsed > Date.now()) {
