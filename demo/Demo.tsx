@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { StickToBottom, useStickToBottomContext } from '../src/StickToBottom';
 import { useFakeMessages } from './useFakeMessages';
-import Slider from '@mui/material/Slider';
 
 function ScrollToBottom() {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
@@ -51,14 +50,22 @@ export function Demo() {
   const [speed, setSpeed] = useState(0.2);
 
   return (
-    <>
-      <Slider value={speed} onChange={(_, value) => setSpeed(value as number)} min={0} max={1} step={0.01}></Slider>
+    <div className="flex flex-col gap-10 p-10">
+      <input
+        className="w-full"
+        type="range"
+        value={speed}
+        onChange={(e) => setSpeed(+e.target.value)}
+        min={0}
+        max={1}
+        step={0.01}
+      ></input>
 
       <div className="flex gap-6 w-[100vw]">
         <Messages speed={speed} animation="smooth" />
         <Messages speed={speed} animation="instant" />
       </div>
-    </>
+    </div>
   );
 }
 
