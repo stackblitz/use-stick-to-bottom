@@ -28,6 +28,7 @@ export function StickToBottom({
   mass,
   damping,
   stiffness,
+  targetScrollTop,
   ...props
 }: StickToBottomProps) {
   const defaultInstance = useStickToBottom({
@@ -36,6 +37,7 @@ export function StickToBottom({
     stiffness,
     resize,
     initial,
+    targetScrollTop,
   });
   const { scrollRef, contentRef, scrollToBottom, isAtBottom, isNearBottom, escapedFromLock } =
     instance ?? defaultInstance;

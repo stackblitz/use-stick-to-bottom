@@ -61,9 +61,17 @@ export interface SpringAnimation extends Partial<typeof DEFAULT_SPRING_ANIMATION
 
 export type Animation = ScrollBehavior | SpringAnimation;
 
+export interface ScrollElements {
+  scrollElement: HTMLElement;
+  contentElement: HTMLElement;
+}
+
+export type GetTargetScrollTop = (targetScrollTop: number, context: ScrollElements) => number;
+
 export interface StickToBottomOptions extends SpringAnimation {
   resize?: Animation;
   initial?: Animation | boolean;
+  targetScrollTop?: GetTargetScrollTop;
 }
 
 export type ScrollToBottomOptions =
@@ -128,6 +136,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   }, []);
 
   const state = useMemo<StickToBottomState>(() => {
+    let lastCalculation: { targetScrollTop: number; calculatedScrollTop: number } | undefined;
+
     return {
       escapedFromLock,
       isAtBottom,
@@ -147,11 +157,32 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       },
 
       get targetScrollTop() {
-        if (!scrollRef.current) {
+        if (!scrollRef.current || !contentRef.current) {
           return 0;
         }
 
-        return scrollRef.current.scrollHeight - 1 - scrollRef.current.clientHeight;
+        let targetScrollTop = scrollRef.current.scrollHeight - 1 - scrollRef.current.clientHeight;
+
+        if (!options.targetScrollTop) {
+          return targetScrollTop;
+        }
+
+        if (lastCalculation?.targetScrollTop === targetScrollTop) {
+          return lastCalculation.calculatedScrollTop;
+        }
+
+        const calculatedScrollTop = options.targetScrollTop(targetScrollTop, {
+          scrollElement: scrollRef.current,
+          contentElement: contentRef.current,
+        });
+
+        lastCalculation = { targetScrollTop, calculatedScrollTop };
+
+        requestAnimationFrame(() => {
+          lastCalculation = undefined;
+        });
+
+        return calculatedScrollTop;
       },
       get scrollDifference() {
         return this.targetScrollTop - this.scrollTop;
@@ -315,7 +346,12 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       const isScrollingDown = scrollTop > lastScrollTop;
       const isScrollingUp = scrollTop < lastScrollTop;
 
-      if (isScrollingUp && !state.animation?.ignoreEscapes) {
+      if (state.animation?.ignoreEscapes) {
+        state.scrollTop = lastScrollTop;
+        return;
+      }
+
+      if (isScrollingUp) {
         setEscapedFromLock(true);
         setIsAtBottom(false);
       }
@@ -443,11 +479,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
   };
 };
 
-function useRefCallback<T extends (ref: HTMLDivElement | null) => any>(callback: T, deps: DependencyList) {
-  const result = useCallback((ref: HTMLDivElement | null) => {
+function useRefCallback<T extends (ref: HTMLElement | null) => any>(callback: T, deps: DependencyList) {
+  const result = useCallback((ref: HTMLElement | null) => {
     result.current = ref;
     return callback(ref);
-  }, deps) as any as MutableRefObject<HTMLDivElement | null> & RefCallback<HTMLDivElement>;
+  }, deps) as any as MutableRefObject<HTMLElement | null> & RefCallback<HTMLElement>;
 
   return result;
 }
