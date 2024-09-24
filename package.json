@@ -2,7 +2,7 @@
   "name": "use-stick-to-bottom",
   "description": "A lightweight React Hook intended mainly for AI chat applications, for smoothly sticking to bottom of messages",
   "private": false,
-  "version": "1.0.37",
+  "version": "1.0.38",
   "type": "module",
   "files": [
     "dist"
