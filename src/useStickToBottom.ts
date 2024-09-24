@@ -172,7 +172,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         const { targetScrollTop } = this;
 
         if (!options.targetScrollTop) {
-          return this.targetScrollTop;
+          return targetScrollTop;
         }
 
         if (lastCalculation?.targetScrollTop === targetScrollTop) {
