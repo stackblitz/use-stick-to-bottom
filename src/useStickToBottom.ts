@@ -197,7 +197,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       },
 
       get scrollDifference() {
-        return this.targetScrollTop - this.scrollTop;
+        return this.calculatedTargetScrollTop - this.scrollTop;
       },
 
       get isNearBottom() {
