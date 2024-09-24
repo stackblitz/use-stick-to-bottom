@@ -13,6 +13,7 @@ interface StickToBottomState {
   lastScrollTop?: number;
   ignoreScrollToTop?: number;
   targetScrollTop: number;
+  calculatedTargetScrollTop: number;
   scrollDifference: number;
   resizeDifference: number;
 
@@ -161,20 +162,30 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return 0;
         }
 
-        let targetScrollTop = scrollRef.current.scrollHeight - 1 - scrollRef.current.clientHeight;
+        return scrollRef.current.scrollHeight - 1 - scrollRef.current.clientHeight;
+      },
+      get calculatedTargetScrollTop() {
+        if (!scrollRef.current || !contentRef.current) {
+          return 0;
+        }
+
+        const { targetScrollTop } = this;
 
         if (!options.targetScrollTop) {
-          return targetScrollTop;
+          return this.targetScrollTop;
         }
 
         if (lastCalculation?.targetScrollTop === targetScrollTop) {
           return lastCalculation.calculatedScrollTop;
         }
 
-        const calculatedScrollTop = options.targetScrollTop(targetScrollTop, {
-          scrollElement: scrollRef.current,
-          contentElement: contentRef.current,
-        });
+        const calculatedScrollTop = Math.min(
+          options.targetScrollTop(targetScrollTop, {
+            scrollElement: scrollRef.current,
+            contentElement: contentRef.current,
+          }),
+          targetScrollTop
+        );
 
         lastCalculation = { targetScrollTop, calculatedScrollTop };
 
@@ -184,6 +195,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
 
         return calculatedScrollTop;
       },
+
       get scrollDifference() {
         return this.targetScrollTop - this.scrollTop;
       },
@@ -208,7 +220,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     const { ignoreEscapes = false } = scrollOptions;
 
     let durationElapsed: number;
-    let startTarget = state.targetScrollTop;
+    let startTarget = state.calculatedTargetScrollTop;
 
     if (scrollOptions.duration instanceof Promise) {
       scrollOptions.duration.finally(() => {
@@ -240,10 +252,10 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return next();
         }
 
-        if (scrollTop < Math.min(startTarget, state.targetScrollTop)) {
+        if (scrollTop < Math.min(startTarget, state.calculatedTargetScrollTop)) {
           if (state.animation?.behavior === behavior) {
             if (behavior === 'instant') {
-              state.scrollTop = state.targetScrollTop;
+              state.scrollTop = state.calculatedTargetScrollTop;
               return next();
             }
 
@@ -261,7 +273,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         }
 
         if (durationElapsed > Date.now()) {
-          startTarget = state.targetScrollTop;
+          startTarget = state.calculatedTargetScrollTop;
 
           return next();
         }
@@ -273,7 +285,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
          * up another scroll to the bottom with the last
          * requested animatino.
          */
-        if (state.scrollTop < state.targetScrollTop) {
+        if (state.scrollTop < state.calculatedTargetScrollTop) {
           return scrollToBottom({
             animation: mergeAnimations(optionsRef.current, optionsRef.current.resize),
             ignoreEscapes,
