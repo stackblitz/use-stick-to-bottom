@@ -179,12 +179,15 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           return lastCalculation.calculatedScrollTop;
         }
 
-        const calculatedScrollTop = Math.min(
-          options.targetScrollTop(targetScrollTop, {
-            scrollElement: scrollRef.current,
-            contentElement: contentRef.current,
-          }),
-          targetScrollTop
+        const calculatedScrollTop = Math.max(
+          Math.min(
+            options.targetScrollTop(targetScrollTop, {
+              scrollElement: scrollRef.current,
+              contentElement: contentRef.current,
+            }),
+            targetScrollTop
+          ),
+          0
         );
 
         lastCalculation = { targetScrollTop, calculatedScrollTop };
