@@ -36,14 +36,13 @@ function Chat() {
         {messages.map((message) => (
           <Message key={message.id} message={message} />
         ))}
-
       </StickToBottom.Content>
 
       <ScrollToBottom />
 
       {/* This component uses `useStickToBottomContext` to scroll to bottom when the user enters a message */}
       <ChatBox />
-    </StickToBottom.Scroll>
+    </StickToBottom>
   );
 }
 
