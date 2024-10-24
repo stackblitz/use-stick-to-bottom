@@ -61,7 +61,7 @@ export function Demo() {
         step={0.01}
       ></input>
 
-      <div className="flex gap-6 w-[100vw]">
+      <div className="flex gap-6 w-full">
         <Messages speed={speed} animation="smooth" />
         <Messages speed={speed} animation="instant" />
       </div>
