@@ -19,7 +19,7 @@ function Messages({ animation, speed }: { animation: ScrollBehavior; speed: numb
   const messages = useFakeMessages(speed);
 
   return (
-    <div className="prose flex flex-col gap-2 w-full">
+    <div className="prose flex flex-col gap-2 w-full overflow-hidden">
       <h2 className="flex justify-center">{animation}:</h2>
 
       <StickToBottom
@@ -50,9 +50,9 @@ export function Demo() {
   const [speed, setSpeed] = useState(0.2);
 
   return (
-    <div className="flex flex-col gap-10 p-10">
+    <div className="flex flex-col gap-10 p-10 items-center w-full">
       <input
-        className="w-full"
+        className="w-full max-w-screen-lg"
         type="range"
         value={speed}
         onChange={(e) => setSpeed(+e.target.value)}
@@ -61,7 +61,7 @@ export function Demo() {
         step={0.01}
       ></input>
 
-      <div className="flex gap-6 w-full">
+      <div className="flex gap-6 w-full max-w-screen-lg">
         <Messages speed={speed} animation="smooth" />
         <Messages speed={speed} animation="instant" />
       </div>
