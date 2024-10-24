@@ -70,5 +70,5 @@ export function Demo() {
 }
 
 function Message({ children }: { children: React.ReactNode }) {
-  return <div className="bg-gray-100 rounded-lg p-4 shadow-md">{children}</div>;
+  return <div className="bg-gray-100 rounded-lg p-4 shadow-md break-words">{children}</div>;
 }
