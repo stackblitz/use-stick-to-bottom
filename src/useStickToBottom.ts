@@ -120,6 +120,7 @@ export type ScrollToBottomOptions =
     };
 
 export type ScrollToBottom = (scrollOptions?: ScrollToBottomOptions) => Promise<boolean> | boolean;
+export type StopScroll = () => void;
 
 const STICK_TO_BOTTOM_OFFSET_PX = 70;
 const SIXTY_FPS_INTERVAL_MS = 1000 / 60;
@@ -328,6 +329,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     return next();
   }, []);
 
+  const stopScroll = useCallback(() => {
+    setEscapedFromLock(true);
+    setIsAtBottom(false);
+  }, []);
+
   const handleScroll = useCallback(({ target }: Event) => {
     if (target !== scrollRef.current) {
       return;
@@ -500,6 +506,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     contentRef,
     scrollRef,
     scrollToBottom,
+    stopScroll,
     isAtBottom: isAtBottom || isNearBottom,
     isNearBottom,
     escapedFromLock,
