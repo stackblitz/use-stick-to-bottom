@@ -15,18 +15,12 @@ function ScrollToBottom() {
   );
 }
 
-function Messages({ animation, speed }: { animation: ScrollBehavior; speed: number }) {
-  const messages = useFakeMessages(speed);
+function MessagesContent({ messages }: { messages: React.ReactNode[][] }) {
+  const { stopScroll } = useStickToBottomContext();
 
   return (
-    <div className="prose flex flex-col gap-2 w-full">
-      <h2 className="flex justify-center">{animation}:</h2>
-
-      <StickToBottom
-        className="relative h-[50vh] w-full"
-        resize={animation}
-        initial={animation === 'instant' ? 'instant' : { mass: 10 }}
-      >
+    <>
+      <div className="relative w-full flex flex-col overflow-hidden">
         <StickToBottom.Content className="flex flex-col gap-4 p-6">
           {[...Array(10)].map((_, i) => (
             <Message key={i}>
@@ -39,8 +33,31 @@ function Messages({ animation, speed }: { animation: ScrollBehavior; speed: numb
             <Message key={i}>{message}</Message>
           ))}
         </StickToBottom.Content>
-
         <ScrollToBottom />
+      </div>
+
+      <div className="flex justify-center pt-4">
+        <button className="rounded bg-slate-600 text-white px-4 py-2" onClick={() => stopScroll()}>
+          Stop Scroll
+        </button>
+      </div>
+    </>
+  );
+}
+
+function Messages({ animation, speed }: { animation: ScrollBehavior; speed: number }) {
+  const messages = useFakeMessages(speed);
+
+  return (
+    <div className="prose flex flex-col gap-2 w-full overflow-hidden">
+      <h2 className="flex justify-center">{animation}:</h2>
+
+      <StickToBottom
+        className="h-[50vh] flex flex-col"
+        resize={animation}
+        initial={animation === 'instant' ? 'instant' : { mass: 10 }}
+      >
+        <MessagesContent messages={messages} />
       </StickToBottom>
     </div>
   );
@@ -50,9 +67,9 @@ export function Demo() {
   const [speed, setSpeed] = useState(0.2);
 
   return (
-    <div className="flex flex-col gap-10 p-10">
+    <div className="flex flex-col gap-10 p-10 items-center w-full">
       <input
-        className="w-full"
+        className="w-full max-w-screen-lg"
         type="range"
         value={speed}
         onChange={(e) => setSpeed(+e.target.value)}
@@ -61,7 +78,7 @@ export function Demo() {
         step={0.01}
       ></input>
 
-      <div className="flex gap-6 w-[100vw]">
+      <div className="flex gap-6 w-full max-w-screen-lg">
         <Messages speed={speed} animation="smooth" />
         <Messages speed={speed} animation="instant" />
       </div>
@@ -70,5 +87,5 @@ export function Demo() {
 }
 
 function Message({ children }: { children: React.ReactNode }) {
-  return <div className="bg-gray-100 rounded-lg p-4 shadow-md">{children}</div>;
+  return <div className="bg-gray-100 rounded-lg p-4 shadow-md break-words">{children}</div>;
 }

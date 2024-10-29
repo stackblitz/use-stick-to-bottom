@@ -5,12 +5,13 @@
 
 import * as React from 'react';
 import { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
-import { ScrollToBottom, StickToBottomOptions, useStickToBottom } from './useStickToBottom.js';
+import { ScrollToBottom, StopScroll, StickToBottomOptions, useStickToBottom } from './useStickToBottom.js';
 
 export interface StickToBottomContext {
   contentRef: RefCallback<HTMLDivElement>;
   scrollRef: RefCallback<HTMLDivElement>;
   scrollToBottom: ScrollToBottom;
+  stopScroll: StopScroll;
   isAtBottom: boolean;
   isNearBottom: boolean;
   escapedFromLock: boolean;
@@ -44,12 +45,13 @@ export function StickToBottom({
     initial,
     targetScrollTop,
   });
-  const { scrollRef, contentRef, scrollToBottom, isAtBottom, isNearBottom, escapedFromLock } =
+  const { scrollRef, contentRef, scrollToBottom, stopScroll, isAtBottom, isNearBottom, escapedFromLock } =
     instance ?? defaultInstance;
 
   const context = useMemo<StickToBottomContext>(
     () => ({
       scrollToBottom,
+      stopScroll,
       scrollRef,
       isAtBottom,
       isNearBottom,
