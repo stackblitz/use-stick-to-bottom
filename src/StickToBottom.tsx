@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as React from 'react';
-import { createContext, ReactNode, RefCallback, useContext, useLayoutEffect, useMemo } from 'react';
+import { createContext, ReactNode, RefCallback, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
 import { ScrollToBottom, StopScroll, StickToBottomOptions, useStickToBottom } from './useStickToBottom.js';
 
 export interface StickToBottomContext {
@@ -25,6 +25,8 @@ export interface StickToBottomProps
   instance?: ReturnType<typeof useStickToBottom>;
   children: ((context: StickToBottomContext) => ReactNode) | ReactNode;
 }
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export function StickToBottom({
   instance,
@@ -61,7 +63,7 @@ export function StickToBottom({
     [scrollToBottom, isAtBottom, contentRef, escapedFromLock]
   );
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!scrollRef.current) {
       return;
     }
