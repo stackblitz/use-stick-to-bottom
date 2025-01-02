@@ -3,7 +3,7 @@
   "author": "Sam Denty <samddenty@gmail.com> (http://samdenty.com/)",
   "description": "A lightweight React Hook intended mainly for AI chat applications, for smoothly sticking to bottom of messages",
   "private": false,
-  "version": "1.0.42",
+  "version": "1.0.43",
   "type": "module",
   "files": [
     "dist"
@@ -22,7 +22,7 @@
     "url": "https://github.com/stackblitz/use-stick-to-bottom.git"
   },
   "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@egoist/tailwindcss-icons": "^1.8.1",
